@@ -10,8 +10,10 @@
 #include <string.h>
 
 #define SIZE 12
+#define INT_MAX 4294967295
+#define LEFT_ONE (1 << ((sizeof(unsigned int) * 8) - 1))
 
-typedef int* cubi;
+typedef unsigned int* cubi;
 
 /**
  * Constructor
@@ -50,7 +52,7 @@ int cubi_size(cubi a) {
 void cubi_dump(cubi a) {
 	fprintf(stderr, "STRUCT {\n\tsize: %d\n", SIZE);
 	for (int i = 0; i < SIZE; i++) {
-		fprintf(stderr, "\t[%d]: %d\n", i, a[i]);
+		fprintf(stderr, "\t[%d]: %u\n", i, a[i]);
 	}
 	fprintf(stderr, "}\n");
 }
@@ -78,14 +80,13 @@ void cubi_shift_right(cubi a) {
  * @param: Cubi
  */
 void cubi_shift_left(cubi a) {
-	int bits1, bits2;
+	unsigned int bits1, bits2;
 	bits1 = bits2 = 0;
 	for (int i = 0; i < SIZE; i++) {
-		bits1 = a[i] & 1000000;
+		bits1 = a[i] & (1 << ((sizeof(unsigned int)) * 8 - 1));
 		a[i] <<= 1;
-		if (bits2 >= 500000) {
+		if (bits2) {
 			a[i] += 1;
-			a[i-1] -= 1000000;
 		}
 		bits2 = bits1;
 	}
@@ -110,7 +111,7 @@ void cubi_copy(cubi a, cubi b) {
  * @param: (cubi) a
  * @param: (char*) str
  */
-void cubi_set_str(cubi a, char* str) {
+/*void cubi_set_str(cubi a, char* str) {
 	int length = strlen(str);
 	if (length > SIZE * 6)
 		fprintf(stderr, "\nERROR: cubi_set_str(), string too long to store in cubi type.\n");
@@ -120,9 +121,51 @@ void cubi_set_str(cubi a, char* str) {
 			a[i] = 0;
 
 		// Starting at the right end of string, add to from left end of array
-		for (int i = 0; i < length; i++) {
-			a[i/6] += (str[length-i-1] - '0') * (int) pow(10, i % 6);
+		unsigned long int R = 0;
+		int i = 0; int mod = 0;
+		while (length > 0) {
+			R += ((str[length-1] - '0') * (unsigned long int) pow(10, mod));
+			fprintf(stderr, "i: %d\tR: %lu\t",i, R);
+			if (R > INT_MAX) {
+				int carry = 0;
+				while (R > INT_MAX) {
+					R -= INT_MAX;
+					carry++;
+				}
+				a[i] = R;
+				R = carry;
+				i++;
+				mod = 0;
+			} else {
+				a[i] = R;
+				mod++;
+			}
+			length--;
 		}
+			a[i] = R;
+			fprintf(stderr, "i: %d\tR: %lu\t",i, R);
+	}
+}*/
+
+/**
+ * Set cubi value by string binary
+ *
+ * @param: (cubi) a
+ * @param: (cubi) str
+ */
+void cubi_set_str_bin(cubi a, char* str) {
+	int length = strlen(str);
+	if (length > SIZE * 32) {
+		fprintf(stderr, "\nERROR: cubi_set_str_bin(), string too long to store in cubi type.\n");
+		exit(1);
+	}
+
+	// Empty out cubi
+	for (int i = 0; i < SIZE; i++)
+		a[i] = 0;
+
+	for (int i = 0; i < length; i++) {
+		a[i/32] += (str[length-i-1] - '0') * (unsigned int) pow(2, i % 32);
 	}
 }
 
@@ -214,8 +257,8 @@ void cubi_add(cubi a, cubi b, cubi c) {
 	int carry = 0;
 	for (int i = 0; i < SIZE; i++) {
 		c[i] = a[i] + b[i] + carry;
-		carry = c[i] / 1000000;
-		c[i] -= carry * 1000000;
+		carry = c[i] / INT_MAX;
+		c[i] -= carry * INT_MAX;
 	}
 
 	// Carry should be empty. If not, we ran out of room
@@ -233,13 +276,6 @@ void cubi_add(cubi a, cubi b, cubi c) {
  * @param: (cubi) c
  */
 void cubi_sub(cubi a, cubi b, cubi c) {
-	int sa = SIZE;
-	int sb = SIZE;
-	int sc = SIZE;
-	if (sa != sb || sa != sc) {
-		printf("ERROR: cubi_sub(a, b, c) requires that size of a,b,c are equal\n");
-		exit(1);
-	}
 	if (cubi_cmp(a, b) < 0) {
 		printf("ERROR: cubi_sub(a, b, c), a must be greater than b\n");
 		exit(1);
@@ -250,9 +286,9 @@ void cubi_sub(cubi a, cubi b, cubi c) {
 		c[i] = 0;
 
 	int carry = 0;
-	for (int i = 0; i < sa; i++) {
+	for (int i = 0; i < SIZE; i++) {
 		if (b[i] > a[i]) {
-			carry = 1000000;
+			carry = LEFT_ONE;
 			c[i+1] -= 1;
 		}
 		c[i] += a[i] - b[i] + carry;
@@ -270,8 +306,8 @@ void cubi_sub(cubi a, cubi b, cubi c) {
  */
 void cubi_mult(cubi a, cubi b, cubi c) {
 	cubi d, ccpy;
-	d = (int*) malloc(SIZE * sizeof(int));
-	ccpy = (int*) malloc(SIZE * sizeof(int));
+	d = (unsigned int*) malloc(SIZE * sizeof(unsigned int));
+	ccpy = (unsigned int*) malloc(SIZE * sizeof(unsigned int));
 	cubi_init(d);
 	cubi_init(ccpy);
 
@@ -279,13 +315,13 @@ void cubi_mult(cubi a, cubi b, cubi c) {
 	for (int i = 0; i < SIZE; i++)
 		c[i] = 0;
 
-	int carry = 0;
+	unsigned long carry = 0;
 	for (int i = 0; i < SIZE; i++) {
 		for (int j = 0; j < SIZE; j++) {
 			if (j+i < SIZE) {
 				unsigned long ul = (unsigned long) a[i] * (unsigned long) b[j] + (unsigned long) carry;
-				carry = (int) (ul / 1000000);
-				d[i+j] = (int) (ul - carry * 1000000);
+				carry = (unsigned int) (ul / (INT_MAX+1));
+				d[i+j] = (unsigned int) (ul - carry * (INT_MAX+1));
 				cubi_copy(c, ccpy);
 				cubi_add(ccpy, d, c);
 				d[i+j] = 0;
@@ -388,7 +424,7 @@ void cubi_div(cubi N, cubi D, cubi Q, cubi R) {
 		R[i] = 0;
 	}
 	cubi Rcpy;
-	Rcpy = (int*) malloc(sizeof(int) * SIZE);
+	Rcpy = (unsigned int*) malloc(sizeof(unsigned int) * SIZE);
 
 	// Check for divide by zero
 	if (cubi_cmp(Q, D) == 0) {

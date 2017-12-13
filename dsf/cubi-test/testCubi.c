@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
-#include "cubi.h"
+#include "cubi-c.h"
 
 void testInit();
 void testCompare();

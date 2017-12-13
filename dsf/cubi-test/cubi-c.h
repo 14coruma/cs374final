@@ -1,5 +1,5 @@
-/* cubi.h contains the struct and method declarations for 
- * my CUDA Big Int data type
+/* cubi-c.h contains the struct and method declarations for 
+ * my CUDA Big Int data type (for testing with c)
  *
  * Andrew Corum, Dec 2017
  */

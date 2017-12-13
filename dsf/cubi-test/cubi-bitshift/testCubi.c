@@ -531,10 +531,12 @@ void testInit() {
 
 	cubi_set_str_bin(a, (char*) "101");
 	fprintf(stderr, "    a = 101 = 5 == ");
+	fprintf(stderr, "%s", cubi_get_str_bin(a));
 	fprintf(stderr, "✔\n");
 
 	cubi_set_str_bin(a, (char*) "110110101011010101001101");
-	fprintf(stderr, "    a = 14333261... ");
+	fprintf(stderr, "    a = 14333261 = 110110101011010101001101... ");
+	fprintf(stderr, "%s", cubi_get_str_bin(a));
 	fprintf(stderr, "✔\n");
 
 	cubi_set_str_bin(a, (char*) "11010101011010100101010110101010011");

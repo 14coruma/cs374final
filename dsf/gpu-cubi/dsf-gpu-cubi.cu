@@ -82,8 +82,8 @@ void vectorHypot(
 		f2[i] = d_f2[i];
 		root[i] = d_root[i];
 		N[i] = d_N[i];
-		numThreads[i] = d_numThreads[i];
 	}
+	numThreads[0] = d_numThreads[0];
 
 	cubi id, prime, prime_copy, max, zero, R, Q;
 	id         = (unsigned int*) malloc(SIZE * sizeof(unsigned int));

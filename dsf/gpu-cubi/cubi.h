@@ -183,6 +183,7 @@ char* cubi_get_str_bin_h(cubi a) {
 	int i;
 	char* str = (char*) malloc(SIZE * 32 * sizeof(char));
 	char* tempStr = (char*) malloc(32 * sizeof(char));
+	char* bit = (char*) malloc(32 * sizeof(char));
 
 	// For each data element, add the number to str (through a tempStr)
 	int leadZero = 1;
@@ -190,8 +191,10 @@ char* cubi_get_str_bin_h(cubi a) {
 		if (a[i] == 0 && leadZero == 1) // Skip leading zeros
 			continue;
 		leadZero = 0;
-		sprintf(tempStr, "%d", a[i]);
-		strcat(str, tempStr);
+		for (int j = 0; j < 32; j++) {
+			bit[j] = ((a[i] & (1 << j)) >> j) + '0'; // Set bit[j] to the binary character in a[i] at j
+		}
+		strcat(str, bit);
 	}
 
 	// Copy space for retStr
@@ -200,11 +203,12 @@ char* cubi_get_str_bin_h(cubi a) {
 
 	// Remove leading un-wanted values
 	for (int i = 0; i < 6; i++) {
-		if (retStr[0] > '9' || retStr[0] < '0')
+		if (retStr[0] > '1' || retStr[0] < '0')
 			retStr++;
 	}
 	free(str);
 	free(tempStr);
+	free(bit);
 	return retStr;
 }
  

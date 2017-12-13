@@ -11,6 +11,8 @@
 #include "cubi-c.h"
 
 void testInit();
+void testShiftRight();
+void testShiftLeft();
 void testCompare();
 void testMagnitude();
 void testAdd();
@@ -18,7 +20,6 @@ void testSub();
 void testMult();
 void testDiv();
 void testMod();
-
 /**
  * Run cubi.h data type tests
  */
@@ -26,7 +27,9 @@ int main(int argc, char** argv) {
 	fprintf(stderr, "Testing cubi.h:\n");
 
 	testInit();
-	testMagnitude();
+//	testShiftRight();
+	testShiftLeft();
+//	testMagnitude();
 	testCompare();
 	testAdd();
 	testSub();
@@ -44,40 +47,54 @@ int main(int argc, char** argv) {
 void testMod() {
 	fprintf(stderr, "- Testing modulus...\n");
 
-	cubi a, b, c, d;
-	cubi_init(&a, 12);
-	cubi_init(&b, 12);
-	cubi_init(&c, 12);
-	cubi_init(&d, 12);
+	cubi a, b, c, d, r;
+	a = (cubi) malloc(SIZE * sizeof(int));
+	b = (cubi) malloc(SIZE * sizeof(int));
+	c = (cubi) malloc(SIZE * sizeof(int));
+	d = (cubi) malloc(SIZE * sizeof(int));
+	r = (cubi) malloc(SIZE * sizeof(int));
+	cubi_init(a);
+	cubi_init(b);
+	cubi_init(c);
+	cubi_init(d);
+	cubi_init(r);
 
-	fprintf(stderr, "  + Small numbers... ");
-	cubi_set_str(&a, (char*) "7154");
-	cubi_set_str(&b, (char*) "98");
-	cubi_set_str(&d, (char*) "0");
-	cubi_mod(&a, &b, &c);
-	assert(cubi_cmp(&c, &d) == 0);
+	fprintf(stderr, "  + Small numbers (mod == 0)... ");
+	cubi_set_str_bin(d, (char*) "0");
+	cubi_set_str_bin(b, (char*) "111");
+	cubi_set_str_bin(a, (char*) "10000101");
+	cubi_div(a, b, c, r);
+	assert(cubi_cmp(r, d) == 0);
+	fprintf(stderr, "✔\n");
+
+	fprintf(stderr, "  + Small numbers mod > 0... ");
+	cubi_set_str_bin(d, (char*) "111");
+	cubi_set_str_bin(b, (char*) "1110");
+	cubi_set_str_bin(a, (char*) "10000101");
+	cubi_div(a, b, c, r);
+	assert(cubi_cmp(r, d) == 0);
 	fprintf(stderr, "✔\n");
 
 	fprintf(stderr, "  + Medium length numbers... ");
-	cubi_set_str(&a, (char*) "56185479684165");
-	cubi_set_str(&b, (char*) "862937951");
-	cubi_set_str(&d, (char*) "452632506");
-	cubi_mod(&a, &b, &c);
-	assert(cubi_cmp(&c, &d) == 0);
+	cubi_set_str_bin(a, (char*) "10011111000010110111001111010000000111101001001");
+	cubi_set_str_bin(b, (char*) "110110101110110010010110101111001");
+	cubi_set_str_bin(d, (char*) "100110010110101111110111110111011");
+	cubi_div(a, b, c, r);
+	assert(cubi_cmp(r, d) == 0);
 	fprintf(stderr, "✔\n");
 
 	fprintf(stderr, "  + Large numbers... ");
-	cubi_set_str(&a, (char*) "159028561088562700000737018131892930468");
-	cubi_set_str(&b, (char*) "63987234234780923458996723459");
-	cubi_set_str(&d, (char*) "61879679652393658374941427468");
-	cubi_mod(&a, &b, &c);
-	assert(cubi_cmp(&c, &d) == 0);
+	cubi_set_str_bin(b, (char*) "101111000011010101011011111010110000110100111001101111100000011");
+	cubi_set_str_bin(d, (char*) "0");
+	cubi_set_str_bin(a, (char*) "1110111101000111100100101101010100000000100011111100000001100100001000010110110101010000001110000111000000000000000011110100100");
+	cubi_div(a, b, c, r);
+	assert(cubi_cmp(r, d) == 0);
 	fprintf(stderr, "✔\n");
 
-	cubi_free(&a);
-	cubi_free(&b);
-	cubi_free(&c);
-	cubi_free(&d);
+	cubi_free(a);
+	cubi_free(b);
+	cubi_free(c);
+	cubi_free(d);
 
 	fprintf(stderr, "  Passed!\n\n");
 }
@@ -88,80 +105,47 @@ void testMod() {
 void testDiv() {
 	fprintf(stderr, "- Testing division...\n");
 
-	cubi a, b, c, d;
-	cubi_init(&a, 12);
-	cubi_init(&b, 12);
-	cubi_init(&c, 12);
-	cubi_init(&d, 12);
+	cubi a, b, c, d, r;
+	a = (cubi) malloc(SIZE * sizeof(int));
+	b = (cubi) malloc(SIZE * sizeof(int));
+	c = (cubi) malloc(SIZE * sizeof(int));
+	d = (cubi) malloc(SIZE * sizeof(int));
+	r = (cubi) malloc(SIZE * sizeof(int));
+	cubi_init(a);
+	cubi_init(b);
+	cubi_init(c);
+	cubi_init(d);
+	cubi_init(r);
 
-	fprintf(stderr, "  + Evenly divide small numbers... ");
-	cubi_set_str(&a, (char*) "738");
-	cubi_set_str(&b, (char*) "41");
-	cubi_set_str(&d, (char*) "18");
-	cubi_div(&a, &b, &c);
-	assert(cubi_cmp(&c, &d) == 0);
+	fprintf(stderr, "  + Small numbers evenly... ");
+	cubi_set_str_bin(d, (char*) "10011");
+	cubi_set_str_bin(b, (char*) "111");
+	cubi_set_str_bin(a, (char*) "10000101");
+	cubi_div(a, b, c, r);
+	assert(cubi_cmp(c, d) == 0);
 	fprintf(stderr, "✔\n");
 
-	fprintf(stderr, "  + Evenly divide medium length numbers... ");
-	cubi_set_str(&d, (char*) "501210");
-	cubi_set_str(&b, (char*) "72342320");
-	cubi_set_str(&a, (char*) "36258694207200");
-	cubi_div(&a, &b, &c);
-	assert(cubi_cmp(&c, &d) == 0);
+	fprintf(stderr, "  + Medium length numbers evenly... ");
+	cubi_set_str_bin(d, (char*) "1111010010111011010");
+	cubi_set_str_bin(b, (char*) "100010011111101101100110000");
+	cubi_set_str_bin(a, (char*) "1000001111101000100010100101101001011011100000");
+	cubi_div(a, b, c, r);
+	assert(cubi_cmp(c, d) == 0);
 	fprintf(stderr, "✔\n");
 
-	fprintf(stderr, "  + Evenly divide large numbers... ");
-	cubi_set_str(&b, (char*) "6780923458996723459");
-	cubi_set_str(&d, (char*) "23452345694533453452");
-	cubi_set_str(&a, (char*) "159028561088562700000737018131892930468");
-	cubi_div(&a, &b, &c);
-	assert(cubi_cmp(&c, &d) == 0);
+	fprintf(stderr, "  + Large numbers evenly... ");
+	cubi_set_str_bin(b, (char*) "101111000011010101011011111010110000110100111001101111100000011");
+	cubi_set_str_bin(d, (char*) "10100010101110111011110000010011101000000010101000000011010001100");
+	cubi_set_str_bin(a, (char*) "1110111101000111100100101101010100000000100011111100000001100100001000010110110101010000001110000111000000000000000011110100100");
+	cubi_div(a, b, c, r);
+	assert(cubi_cmp(c, d) == 0);
 	fprintf(stderr, "✔\n");
 
-	fprintf(stderr, "  + Evenly divide large numbers reversed... ");
-	cubi_set_str(&d, (char*) "6780923458996723459");
-	cubi_set_str(&b, (char*) "23452345694533453452");
-	cubi_set_str(&a, (char*) "159028561088562700000737018131892930468");
-	cubi_div(&a, &b, &c);
-	assert(cubi_cmp(&c, &d) == 0);
-	fprintf(stderr, "✔\n");
 
-	fprintf(stderr, "  + Divide small numbers with remainder... ");
-	cubi_set_str(&a, (char*) "738");
-	cubi_set_str(&b, (char*) "47");
-	cubi_set_str(&d, (char*) "15");
-	cubi_div(&a, &b, &c);
-	assert(cubi_cmp(&c, &d) == 0);
-	fprintf(stderr, "✔\n");
-
-	fprintf(stderr, "  + Divide large numbers with remainder... ");
-	cubi_set_str(&b, (char*) "7234593223");
-	cubi_set_str(&d, (char*) "21981686625169734163053305109");
-	cubi_set_str(&a, (char*) "159028561088562700000737018131892930468");
-	cubi_div(&a, &b, &c);
-	assert(cubi_cmp(&c, &d) == 0);
-	fprintf(stderr, "✔\n");
-
-	fprintf(stderr, "  + Divide large numbers with remainder... ");
-	cubi_set_str(&b, (char*) "12723423");
-	cubi_set_str(&d, (char*) "7096015819456526607021");
-	cubi_set_str(&a, (char*) "90285610885637018131892930468");
-	cubi_div(&a, &b, &c);
-	assert(cubi_cmp(&c, &d) == 0);
-	fprintf(stderr, "✔\n");
-
-	fprintf(stderr, "  + Divide large numbers with remainder... ");
-	cubi_set_str(&b, (char*) "12723423348923489792348923484");
-	cubi_set_str(&d, (char*) "7");
-	cubi_set_str(&a, (char*) "90285610885637018131892930468");
-	cubi_div(&a, &b, &c);
-	assert(cubi_cmp(&c, &d) == 0);
-	fprintf(stderr, "✔\n");
-
-	cubi_free(&a);
-	cubi_free(&b);
-	cubi_free(&c);
-	cubi_free(&d);
+	cubi_free(a);
+	cubi_free(b);
+	cubi_free(c);
+	cubi_free(d);
 
 	fprintf(stderr, "  Passed!\n\n");
 }
@@ -173,39 +157,43 @@ void testMult() {
 	fprintf(stderr, "- Testing multiplication...\n");
 
 	cubi a, b, c, d;
-	cubi_init(&a, 12);
-	cubi_init(&b, 10);
-	cubi_init(&c, 12);
-	cubi_init(&d, 12);
+	a = (cubi) malloc(SIZE * sizeof(int));
+	b = (cubi) malloc(SIZE * sizeof(int));
+	c = (cubi) malloc(SIZE * sizeof(int));
+	d = (cubi) malloc(SIZE * sizeof(int));
+	cubi_init(a);
+	cubi_init(b);
+	cubi_init(c);
+	cubi_init(d);
 
 	fprintf(stderr, "  + Small numbers... ");
-	cubi_set_str(&a, (char*) "73");
-	cubi_set_str(&b, (char*) "98");
-	cubi_set_str(&d, (char*) "7154");
-	cubi_mult(&a, &b, &c);
-	assert(cubi_cmp(&c, &d) == 0);
+	cubi_set_str_bin(a, (char*) "10011");
+	cubi_set_str_bin(b, (char*) "111");
+	cubi_set_str_bin(d, (char*) "10000101");
+	cubi_mult(a, b, c);
+	assert(cubi_cmp(c, d) == 0);
 	fprintf(stderr, "✔\n");
 
 	fprintf(stderr, "  + Medium length numbers... ");
-	cubi_set_str(&a, (char*) "501210");
-	cubi_set_str(&b, (char*) "72342320");
-	cubi_set_str(&d, (char*) "36258694207200");
-	cubi_mult(&a, &b, &c);
-	assert(cubi_cmp(&c, &d) == 0);
+	cubi_set_str_bin(a, (char*) "1111010010111011010");
+	cubi_set_str_bin(b, (char*) "100010011111101101100110000");
+	cubi_set_str_bin(d, (char*) "1000001111101000100010100101101001011011100000");
+	cubi_mult(a, b, c);
+	assert(cubi_cmp(c, d) == 0);
 	fprintf(stderr, "✔\n");
 
 	fprintf(stderr, "  + Large numbers... ");
-	cubi_set_str(&a, (char*) "6780923458996723459");
-	cubi_set_str(&b, (char*) "23452345694533453452");
-	cubi_set_str(&d, (char*) "159028561088562700000737018131892930468");
-	cubi_mult(&a, &b, &c);
-	assert(cubi_cmp(&c, &d) == 0);
+	cubi_set_str_bin(a, (char*) "101111000011010101011011111010110000110100111001101111100000011");
+	cubi_set_str_bin(b, (char*) "10100010101110111011110000010011101000000010101000000011010001100");
+	cubi_set_str_bin(d, (char*) "1110111101000111100100101101010100000000100011111100000001100100001000010110110101010000001110000111000000000000000011110100100");
+	cubi_mult(a, b, c);
+	assert(cubi_cmp(c, d) == 0);
 	fprintf(stderr, "✔\n");
 
-	cubi_free(&a);
-	cubi_free(&b);
-	cubi_free(&c);
-	cubi_free(&d);
+	cubi_free(a);
+	cubi_free(b);
+	cubi_free(c);
+	cubi_free(d);
 
 	fprintf(stderr, "  Passed!\n\n");
 }
@@ -217,55 +205,51 @@ void testSub() {
 	fprintf(stderr, "- Testing subtraction...\n");
 
 	cubi a, b, c, d;
-	cubi_init(&a, 12);
-	cubi_init(&b, 12);
-	cubi_init(&c, 12);
-	cubi_init(&d, 12);
+	a = (cubi) malloc(SIZE * sizeof(int));
+	b = (cubi) malloc(SIZE * sizeof(int));
+	c = (cubi) malloc(SIZE * sizeof(int));
+	d = (cubi) malloc(SIZE * sizeof(int));
+	cubi_init(a);
+	cubi_init(b);
+	cubi_init(c);
+	cubi_init(d);
 
-	fprintf(stderr, "  + Subtract zero... ");
-	cubi_set_str(&a, (char*) "7234");
-	cubi_set_str(&b, (char*) "0");
-	cubi_set_str(&d, (char*) "7234");
-	cubi_sub(&a, &b, &c);
-	assert(cubi_cmp(&c, &d) == 0);
+	fprintf(stderr, "  + '7234 - 0 = 7234'... ");
+	cubi_set_str_bin(a, (char*) "100010011111110111001100010");
+	cubi_set_str_bin(b, (char*) "0");
+	cubi_set_str_bin(d, (char*) "100010011111110111001100010");
+	cubi_sub(a, b, c);
+	assert(cubi_cmp(c, d) == 0);
 	fprintf(stderr, "✔\n");
 
-	fprintf(stderr, "  + Subtract small numbers... ");
-	cubi_set_str(&a, (char*) "41");
-	cubi_set_str(&b, (char*) "28");
-	cubi_set_str(&d, (char*) "13");
-	cubi_sub(&a, &b, &c);
-	assert(cubi_cmp(&c, &d) == 0);
+	fprintf(stderr, "  + '41 - 13 = 28'... ");
+	cubi_set_str_bin(d, (char*) "1101");
+	cubi_set_str_bin(b, (char*) "11100");
+	cubi_set_str_bin(a, (char*) "101001");
+	cubi_sub(a, b, c);
+	assert(cubi_cmp(c, d) == 0);
 	fprintf(stderr, "✔\n");
 
-	fprintf(stderr, "  + Subtract medium length numbers... ");
-	cubi_set_str(&d, (char*) "500200");
-	cubi_set_str(&b, (char*) "700900");
-	cubi_set_str(&a, (char*) "1201100");
-	cubi_sub(&a, &b, &c);
-	assert(cubi_cmp(&c, &d) == 0);
+	fprintf(stderr, "  + '556002000 = 74600900 - 630602900'... ");
+	cubi_set_str_bin(b, (char*) "100001001000111110101011010000");
+	cubi_set_str_bin(d, (char*) "100011100100101000111000100");
+	cubi_set_str_bin(a, (char*) "100101100101100011110010010100");
+	cubi_sub(a, b, c);
+	assert(cubi_cmp(c, d) == 0);
 	fprintf(stderr, "✔\n");
 
-	fprintf(stderr, "  + Subtract long numbers... ");
-	cubi_set_str(&d, (char*) "12389074574632345");
-	cubi_set_str(&b, (char*) "3478934635734");
-	cubi_set_str(&a, (char*) "12392553509268079");
-	cubi_sub(&a, &b, &c);
-	assert(cubi_cmp(&c, &d) == 0);
+	fprintf(stderr, "  + Big num - really big num... ");
+	cubi_set_str_bin(d, (char*) "10100101010101110110101011010101010111010101010101010101010111011110000010011101000000010101000000011010001100");
+	cubi_set_str_bin(b, (char*) "1110111101000111100100101101010100000000100011111100000001100100001000010110110101010000001110000111000000000000000011110100100");
+	cubi_set_str_bin(a, (char*) "1110111101000111111001011000000010110101111110100110111100001110110011000001110001000000100001101111000010101000000111000110000");
+	cubi_sub(a, b, c);
+	assert(cubi_cmp(c, d) == 0);
 	fprintf(stderr, "✔\n");
 
-	fprintf(stderr, "  + Even bigger subtraction problem... ");
-	cubi_set_str(&d, (char*) "12389074574632345");
-	cubi_set_str(&b, (char*) "159028561088562700000737018131892930468");
-	cubi_set_str(&a, (char*) "159028561088562700000749407206467562813");
-	cubi_sub(&a, &b, &c);
-	assert(cubi_cmp(&c, &d) == 0);
-	fprintf(stderr, "✔\n");
-
-	cubi_free(&a);
-	cubi_free(&b);
-	cubi_free(&c);
-	cubi_free(&d);
+	cubi_free(a);
+	cubi_free(b);
+	cubi_free(c);
+	cubi_free(d);
 
 	fprintf(stderr, "  Passed!\n\n");
 }
@@ -277,55 +261,181 @@ void testAdd() {
 	fprintf(stderr, "- Testing addition...\n");
 
 	cubi a, b, c, d;
-	cubi_init(&a, 12);
-	cubi_init(&b, 10);
-	cubi_init(&c, 12);
-	cubi_init(&d, 12);
+	a = (cubi) malloc(SIZE * sizeof(int));
+	b = (cubi) malloc(SIZE * sizeof(int));
+	c = (cubi) malloc(SIZE * sizeof(int));
+	d = (cubi) malloc(SIZE * sizeof(int));
+	cubi_init(a);
+	cubi_init(b);
+	cubi_init(c);
+	cubi_init(d);
 
 	fprintf(stderr, "  + '7234 + 0 = 7234'... ");
-	cubi_set_str(&a, (char*) "7234");
-	cubi_set_str(&b, (char*) "0");
-	cubi_set_str(&d, (char*) "7234");
-	cubi_add(&a, &b, &c);
-	assert(cubi_cmp(&c, &d) == 0);
+	cubi_set_str_bin(a, (char*) "100010011111110111001100010");
+	cubi_set_str_bin(b, (char*) "0");
+	cubi_set_str_bin(d, (char*) "100010011111110111001100010");
+	cubi_add(a, b, c);
+	assert(cubi_cmp(c, d) == 0);
 	fprintf(stderr, "✔\n");
 
 	fprintf(stderr, "  + '13 + 28 = 41'... ");
-	cubi_set_str(&a, (char*) "13");
-	cubi_set_str(&b, (char*) "28");
-	cubi_set_str(&d, (char*) "41");
-	cubi_add(&a, &b, &c);
-	assert(cubi_cmp(&c, &d) == 0);
+	cubi_set_str_bin(a, (char*) "1101");
+	cubi_set_str_bin(b, (char*) "11100");
+	cubi_set_str_bin(d, (char*) "101001");
+	cubi_add(a, b, c);
+	assert(cubi_cmp(c, d) == 0);
 	fprintf(stderr, "✔\n");
 
-	fprintf(stderr, "  + '500200 + 700900 = 1201100'... ");
-	cubi_set_str(&a, (char*) "500200");
-	cubi_set_str(&b, (char*) "700900");
-	cubi_set_str(&d, (char*) "1201100");
-	cubi_add(&a, &b, &c);
-	assert(cubi_cmp(&c, &d) == 0);
+	fprintf(stderr, "  + '556002000 + 74600900 = 630602900'... ");
+	cubi_set_str_bin(a, (char*) "100001001000111110101011010000");
+	cubi_set_str_bin(b, (char*) "100011100100101000111000100");
+	cubi_set_str_bin(d, (char*) "100101100101100011110010010100");
+	cubi_add(a, b, c);
+	assert(cubi_cmp(c, d) == 0);
 	fprintf(stderr, "✔\n");
 
-	fprintf(stderr, "  + '12389074574632345 + 3478934635734 = 12392553509268079'... ");
-	cubi_set_str(&a, (char*) "12389074574632345");
-	cubi_set_str(&b, (char*) "3478934635734");
-	cubi_set_str(&d, (char*) "12392553509268079");
-	cubi_add(&a, &b, &c);
-	assert(cubi_cmp(&c, &d) == 0);
+	fprintf(stderr, "  + Big num + really big num... ");
+	cubi_set_str_bin(a, (char*) "10100101010101110110101011010101010111010101010101010101010111011110000010011101000000010101000000011010001100");
+	cubi_set_str_bin(b, (char*) "1110111101000111100100101101010100000000100011111100000001100100001000010110110101010000001110000111000000000000000011110100100");
+	cubi_set_str_bin(d, (char*) "1110111101000111111001011000000010110101111110100110111100001110110011000001110001000000100001101111000010101000000111000110000");
+	cubi_add(a, b, c);
+	assert(cubi_cmp(c, d) == 0);
+	fprintf(stderr, "✔\n");
+
+/*	fprintf(stderr, "  + '12389074574632345 + 3478934635734 = 12392553509268079'... ");
+	cubi_set_str_bin(a, (char*) "12389074574632345");
+	cubi_set_str_bin(b, (char*) "3478934635734");
+	cubi_set_str_bin(d, (char*) "12392553509268079");
+	cubi_add(a, b, c);
+	assert(cubi_cmp(c, d) == 0);
 	fprintf(stderr, "✔\n");
 
 	fprintf(stderr, "  + Even bigger addition problem... ");
-	cubi_set_str(&a, (char*) "12389074574632345");
-	cubi_set_str(&b, (char*) "159028561088562700000737018131892930468");
-	cubi_set_str(&d, (char*) "159028561088562700000749407206467562813");
-	cubi_add(&a, &b, &c);
-	assert(cubi_cmp(&c, &d) == 0);
+	cubi_set_str_bin(a, (char*) "12389074574632345");
+	cubi_set_str_bin(b, (char*) "159028561088562700000737018131892930468");
+	cubi_set_str_bin(d, (char*) "159028561088562700000749407206467562813");
+	cubi_add(a, b, c);
+	assert(cubi_cmp(c, d) == 0);
+	fprintf(stderr, "✔\n");*/
+
+	cubi_free(a);
+	cubi_free(b);
+	cubi_free(c);
+	cubi_free(d);
+
+	fprintf(stderr, "  Passed!\n\n");
+}
+
+/**
+ * Run tests for a right left
+ */
+void testShiftLeft() {
+	fprintf(stderr, "- Testing shift left...\n");
+	cubi a, b, zero;
+	a = (cubi) malloc(SIZE * sizeof(int));
+	b = (cubi) malloc(SIZE * sizeof(int));
+	cubi_init(a);
+	cubi_init(b);
+
+	fprintf(stderr, "  + Shift empty cubi left... ");
+	cubi_shift_left(a);
+	assert(cubi_cmp(a, b) == 0);
 	fprintf(stderr, "✔\n");
 
-	cubi_free(&a);
-	cubi_free(&b);
-	cubi_free(&c);
-	cubi_free(&d);
+	fprintf(stderr, "  + Shift small even cubi left... ");
+	cubi_set_str_bin(b, (char*) "11101010");
+	cubi_set_str_bin(a, (char*) "1110101");
+	cubi_shift_left(a);
+	assert(cubi_cmp(a, b) == 0);
+	fprintf(stderr, "✔\n");
+
+	fprintf(stderr, "  + Shift medium length even cubi left... ");
+	cubi_set_str_bin(b, (char*) "110101001110101010011010110000");
+	cubi_set_str_bin(a, (char*) "11010100111010101001101011000");
+	cubi_shift_left(a);
+	assert(cubi_cmp(a, b) == 0);
+	fprintf(stderr, "✔\n");
+
+	fprintf(stderr, "  + Shift large length even cubi left... ");
+	cubi_set_str_bin(b, (char*) "1101010101011010101010101100101010110101010101010101010011010");
+	cubi_set_str_bin(a, (char*) "110101010101101010101010110010101011010101010101010101001101");
+	cubi_shift_left(a);
+	assert(cubi_cmp(a, b) == 0);
+	fprintf(stderr, "✔\n");
+
+/*	fprintf(stderr, "  + Shift even Larger even cubi left... ");
+	cubi_set_str_bin(b, (char*) "23872435098723450982345084352");
+	cubi_set_str_bin(a, (char*) "11936217549361725491172542176");
+	cubi_shift_left(a);
+	assert(cubi_cmp(a, b) == 0);
+	fprintf(stderr, "✔\n");
+
+	fprintf(stderr, "  + Shift even Larger even cubi left... ");
+	cubi_set_str_bin(b, (char*) "437684350872345089723459083245987234598723458978");
+	cubi_set_str_bin(a, (char*) "218842175436172544861729541622993617299361729489");
+	cubi_shift_left(a);
+	assert(cubi_cmp(a, b) == 0);
+	fprintf(stderr, "✔\n");*/
+
+	cubi_free(a);
+	cubi_free(b);
+
+	fprintf(stderr, "  Passed!\n\n");
+}
+
+/**
+ * Run tests for a right shift
+ */
+void testShiftRight() {
+	fprintf(stderr, "- Testing right...\n");
+	cubi a, b, zero;
+	a = (cubi) malloc(SIZE * sizeof(int));
+	b = (cubi) malloc(SIZE * sizeof(int));
+	cubi_init(a);
+	cubi_init(b);
+
+	fprintf(stderr, "  + Shift empty cubi right... ");
+	cubi_shift_right(a);
+	assert(cubi_cmp(a, b) == 0);
+	fprintf(stderr, "✔\n");
+
+	fprintf(stderr, "  + Shift small even cubi right... ");
+	cubi_set_str_bin(a, (char*) "46");
+	cubi_set_str_bin(b, (char*) "23");
+	cubi_shift_right(a);
+	assert(cubi_cmp(a, b) == 0);
+	fprintf(stderr, "✔\n");
+
+	fprintf(stderr, "  + Shift medium length even cubi right... ");
+	cubi_set_str_bin(a, (char*) "4664364634");
+	cubi_set_str_bin(b, (char*) "2332182317");
+	cubi_shift_right(a);
+	assert(cubi_cmp(a, b) == 0);
+	fprintf(stderr, "✔\n");
+
+	fprintf(stderr, "  + Shift large length even cubi right... ");
+	cubi_set_str_bin(a, (char*) "34987234978234");
+	cubi_set_str_bin(b, (char*) "17493617489117");
+	cubi_shift_right(a);
+	assert(cubi_cmp(a, b) == 0);
+	fprintf(stderr, "✔\n");
+
+	fprintf(stderr, "  + Shift even Larger even cubi right... ");
+	cubi_set_str_bin(a, (char*) "23872435098723450982345084352");
+	cubi_set_str_bin(b, (char*) "11936217549361725491172542176");
+	cubi_shift_right(a);
+	assert(cubi_cmp(a, b) == 0);
+	fprintf(stderr, "✔\n");
+
+	fprintf(stderr, "  + Shift even Larger even cubi right... ");
+	cubi_set_str_bin(a, (char*) "437684350872345089723459083245987234598723458978");
+	cubi_set_str_bin(b, (char*) "218842175436172544861729541622993617299361729489");
+	cubi_shift_right(a);
+	assert(cubi_cmp(a, b) == 0);
+	fprintf(stderr, "✔\n");
+
+	cubi_free(a);
+	cubi_free(b);
 
 	fprintf(stderr, "  Passed!\n\n");
 }
@@ -337,31 +447,33 @@ void testCompare() {
 	fprintf(stderr, "- Testing compare...\n");
 
 	cubi a, b;
-	cubi_init(&a, 12);
-	cubi_init(&b, 3);
+	a = (cubi) malloc(SIZE * sizeof(int));
+	b = (cubi) malloc(SIZE * sizeof(int));
+	cubi_init(a);
+	cubi_init(b);
 
 	fprintf(stderr, "  + 0 == 0... ");
-	assert(cubi_cmp(&a, &b) == 0);
+	assert(cubi_cmp(a, b) == 0);
 	fprintf(stderr, "✔\n");
 
 	fprintf(stderr, "  + 0 < 123... ");
-	cubi_set_str(&b, (char*) "123");
-	assert(cubi_cmp(&a, &b) == -1);
+	cubi_set_str_bin(b, (char*) "1111011");
+	assert(cubi_cmp(a, b) == -1);
 	fprintf(stderr, "✔\n");
 
-	fprintf(stderr, "  + 48230434 > 123... ");
-	cubi_set_str(&a, (char*) "48230434");
-	assert(cubi_cmp(&a, &b) == 1);
+	fprintf(stderr, "  + big num > 123... ");
+	cubi_set_str_bin(a, (char*) "10110111111111000010");
+	assert(cubi_cmp(a, b) == 1);
 	fprintf(stderr, "✔\n");
 
-	fprintf(stderr, "  + 45678123912390 == 45678123912390... ");
-	cubi_set_str(&a, (char*) "45678123912390");
-	cubi_set_str(&b, (char*) "45678123912390");
-	assert(cubi_cmp(&a, &b) == 0);
+	fprintf(stderr, "  + same big num == same big num... ");
+	cubi_set_str_bin(a, (char*) "10110111111111000010");
+	cubi_set_str_bin(b, (char*) "10110111111111000010");
+	assert(cubi_cmp(a, b) == 0);
 	fprintf(stderr, "✔\n");
 
-	cubi_free(&a);
-	cubi_free(&b);
+	cubi_free(a);
+	cubi_free(b);
 
 	fprintf(stderr, "  Passed!\n\n");
 }
@@ -369,7 +481,7 @@ void testCompare() {
 /**
  * Run tests for magnitude
  */
-void testMagnitude() {
+/*void testMagnitude() {
 	fprintf(stderr, "- Testing magnitude...\n");
 
 	cubi a, b;
@@ -381,17 +493,17 @@ void testMagnitude() {
 	fprintf(stderr, "✔\n");
 
 	fprintf(stderr, "  + Small cubi (still mag 0)... ");
-	cubi_set_str(&b, (char*) "2343");
+	cubi_set_str_bin(&b, (char*) "2343");
 	assert(cubi_magnitude(&b) == 0);
 	fprintf(stderr, "✔\n");
 
 	fprintf(stderr, "  + med cubi (mag 1)... "); 
-	cubi_set_str(&a, (char*) "12345612345");
+	cubi_set_str_bin(&a, (char*) "12345612345");
 	assert(cubi_magnitude(&a) == 1);
 	fprintf(stderr, "✔\n");
 
 	fprintf(stderr, "  + large cubi (mag 3)... "); 
-	cubi_set_str(&a, (char*) "123456123456123456123456");
+	cubi_set_str_bin(&a, (char*) "123456123456123456123456");
 	assert(cubi_magnitude(&a) == 3);
 	fprintf(stderr, "✔\n");
 
@@ -399,7 +511,7 @@ void testMagnitude() {
 	cubi_free(&b);
 
 	fprintf(stderr, "  Passed!\n\n");
-}
+}*/
 
 /**
  * Run tests for Init, get size, set str, get str
@@ -408,32 +520,45 @@ void testInit() {
 	fprintf(stderr, "- Testing initializers...\n");
 
 	cubi a, b;
-	cubi_init(&a, 12);
-	cubi_init(&b, 3);
+	a = (cubi) malloc(SIZE * sizeof(int));
+	b = (cubi) malloc(SIZE * sizeof(int));
+	cubi_init(a);
+	cubi_init(b);
 
-	fprintf(stderr, "  + Size of a (12)... ");
-	assert(cubi_size(&a) == 12);
+	fprintf(stderr, "  + Size of a... ");
+	assert(cubi_size(a) == 12);
 	fprintf(stderr, "✔\n");
 
-	fprintf(stderr, "  + Size of b (3)... ");
-	assert(cubi_size(&b) == 3);
+	cubi_set_str_bin(a, (char*) "101");
+	fprintf(stderr, "    a = 101 = 5 == ");
 	fprintf(stderr, "✔\n");
 
-	fprintf(stderr, "  + cubi_set_str(), cubi_get_str()... "); 
-	cubi_set_str(&a, (char*) "999999999888888887777777666666555554444333140714042285546");
-	fprintf(stderr, "\n    a = 999999999888888887777777666666555554444333140714042285546 == %s ", cubi_get_str(&a));
+	cubi_set_str_bin(a, (char*) "110110101011010101001101");
+	fprintf(stderr, "    a = 14333261... ");
 	fprintf(stderr, "✔\n");
 
-	cubi_set_str(&b, (char*) "140714042285546");
-	fprintf(stderr, "    b = 140714042285546 == %s ", cubi_get_str(&b));
+	cubi_set_str_bin(a, (char*) "11010101011010100101010110101010011");
+	fprintf(stderr, "    a = 28644126035... ");
 	fprintf(stderr, "✔\n");
 
-	cubi_set_str(&a, (char*) "47");
-	fprintf(stderr, "    a = 47 == %s ", cubi_get_str(&a));
+	cubi_set_str_bin(b, (char*) "1101010101011010101010101100101010110101010101010101010011010");
+	fprintf(stderr, "    a = 1921723508198124186... ");
 	fprintf(stderr, "✔\n");
 
-	cubi_free(&a);
-	cubi_free(&b);
+	fprintf(stderr, "    a = 159028561088562700000737018131892930468... ");
+	cubi_set_str_bin(a, (char*) "1110111101000111100100101101010100000000100011111100000001100100001000010110110101010000001110000111000000000000000011110100100");
+	fprintf(stderr, "✔\n");
+/*	fprintf(stderr, "  + cubi_set_str_bin(), cubi_get_str()... "); 
+	cubi_set_str_bin(a, (char*) "999999999888888887777777666666555554444333140714042285546");
+	fprintf(stderr, "\n    a = 999999999888888887777777666666555554444333140714042285546 == ");
+	fprintf(stderr, "✔\n");
+
+	cubi_set_str_bin(b, (char*) "140714042285546");
+	fprintf(stderr, "    b = 140714042285546 == %s ", cubi_get_str(b));
+	fprintf(stderr, "✔\n");*/
+
+	cubi_free(a);
+	cubi_free(b);
 
 	fprintf(stderr, "  Passed!\n\n");
 }

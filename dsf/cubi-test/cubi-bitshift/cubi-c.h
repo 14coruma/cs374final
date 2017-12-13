@@ -64,11 +64,29 @@ void cubi_shift_right(cubi a) {
 	int bits1, bits2;
 	bits1 = bits2 = 0;
 	for (int i = SIZE - 1; i >= 0; i--) {
-	//	bits = a[i] & (1 << (sizeof(int) - 1)*8); // for shift left, oops
 		bits1 = a[i] & 1;
 		a[i] >>= 1;
 		//a[i] |= (bits2 * ( 1 << ((sizeof(int) - 1)) * 8));
 		if (bits2 == 1) a[i] += 500000;
+		bits2 = bits1;
+	}
+}
+
+/**
+ * Bit shift cubi left
+ *
+ * @param: Cubi
+ */
+void cubi_shift_left(cubi a) {
+	int bits1, bits2;
+	bits1 = bits2 = 0;
+	for (int i = 0; i < SIZE; i++) {
+		bits1 = a[i] & 1000000;
+		a[i] <<= 1;
+		if (bits2 >= 500000) {
+			a[i] += 1;
+			a[i-1] -= 1000000;
+		}
 		bits2 = bits1;
 	}
 }
@@ -361,15 +379,33 @@ void cubi_mult(cubi a, cubi b, cubi c) {
  * @param: (cubi) N
  * @param: (cubi) D
  * @param: (cubi) Q
+ * @param: (cubi) R
  */
-/*void cubi_div(cubi N, cubi D, cubi Q) {
-	// Clean out Q
-	for (int i = 0; i < SIZE; i++)
+void cubi_div(cubi N, cubi D, cubi Q, cubi R) {
+	// Clean out Q and R
+	for (int i = 0; i < SIZE; i++) {
 		Q[i] = 0;
+		R[i] = 0;
+	}
+	cubi Rcpy;
+	Rcpy = (int*) malloc(sizeof(int) * SIZE);
 
 	// Check for divide by zero
-	if ()
-}*/
+	if (cubi_cmp(Q, D) == 0) {
+		printf("ERROR: cubi_div(), DIVIDE BY ZERO\n");
+		exit(1);
+	}
+
+	for (int i = SIZE - 1; i >= 0; i--) {
+		cubi_shift_left(R);
+		R[0] |= N[0] & 1;
+		if (cubi_cmp(R, D) >= 0) {
+			cubi_copy(R, Rcpy);
+			cubi_sub(Rcpy, D, R);
+			Q[i] = 1;
+		}
+	}
+}
 
 /**
  * Calculate modulus of a cubi number: a (mod b) = c
@@ -395,7 +431,7 @@ void cubi_mod(cubi a, cubi b, cubi c) {
 	cubi Q, D;
 	cubi_init(D);
 	cubi_init(Q);
-	cubi_div(a, b, Q);
+	//cubi_div(a, b, Q);
 	cubi_mult(b, Q, D);
 	cubi_sub(a, D, c);
 

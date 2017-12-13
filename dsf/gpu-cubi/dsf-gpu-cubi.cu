@@ -16,34 +16,40 @@
 // For the CUDA runtime routines (prefixed with "cuda_")
 #include <cuda_runtime.h>
 
-#define SIZE 12
-
 __device__
-void nextprime(cubi* prime) {
-	cubi one, two, prime_copy, mod;
-	cubi_init_d(&prime_copy, SIZE);
-	cubi_copy(prime, &prime_copy);
-	cubi_init_d(&one, SIZE);
-	cubi_init_d(&two, SIZE);
-	one.data[0] = 1;
-	two.data[0] = 2;
-	cubi_init_d(&mod, SIZE);
+void nextprime(cubi prime) {
+	cubi one, two, prime_copy, R, Q;
+	one        = (unsigned int*) malloc(SIZE * sizeof(unsigned int));
+	two        = (unsigned int*) malloc(SIZE * sizeof(unsigned int));
+	prime_copy = (unsigned int*) malloc(SIZE * sizeof(unsigned int));
+	R          = (unsigned int*) malloc(SIZE * sizeof(unsigned int));
+	Q          = (unsigned int*) malloc(SIZE * sizeof(unsigned int));
+	cubi_init_d(prime_copy);
+	cubi_init_d(one);
+	cubi_init_d(two);
+	cubi_init_d(R);
+	cubi_init_d(Q);
 
-	if(cubi_cmp(prime, &two) < 0) {
-		cubi_copy(&two, prime);
+	cubi_copy_d(prime, prime_copy);
+	one[0] = 1;
+	two[0] = 2;
+
+	if(cubi_cmp_d(prime, two) < 0) {
+		cubi_copy_d(two, prime);
 	} else {
-		cubi_mod(prime, &two, &mod);
-		if (cubi_cmp(&mod, &one) != 0) {
-			cubi_add(&prime_copy, &one, prime);
+		cubi_div_d(prime, two, Q, R);
+		if (cubi_cmp_d(R, one) != 0) {
+			cubi_add_d(prime_copy, one, prime);
 		} else {
-			cubi_add(&prime_copy, &two, prime);
+			cubi_add_d(prime_copy, two, prime);
 		}
 	}
 
-	cubi_free_d(&one);
-	cubi_free_d(&two);
-	cubi_free_d(&prime_copy);
-	cubi_free_d(&mod);
+	free(one);
+	free(two);
+	free(prime_copy);
+	free(R);
+	free(Q);
 }
 
 /**
@@ -51,8 +57,8 @@ void nextprime(cubi* prime) {
  */
 __global__
 void vectorHypot(
-	int* d_root, int* d_N,
-	int* d_f1, int* d_f2, int* d_numThreads
+	cubi d_root, cubi d_N,
+	cubi d_f1, cubi d_f2, cubi d_numThreads
 )
 {
 	__shared__ int done;
@@ -60,68 +66,83 @@ void vectorHypot(
 
 	// Creat cubis for all parameters
 	cubi f1, f2, root, N, numThreads;
-	cubi_init_d(&f1, SIZE);
-	cubi_init_d(&f2, SIZE);
-	cubi_init_d(&root, SIZE);
-	cubi_init_d(&N, SIZE);
-	cubi_init_d(&numThreads, SIZE);
+	root       = (unsigned int*) malloc(SIZE * sizeof(unsigned int));
+	N          = (unsigned int*) malloc(SIZE * sizeof(unsigned int));
+	f1         = (unsigned int*) malloc(SIZE * sizeof(unsigned int));
+	f2         = (unsigned int*) malloc(SIZE * sizeof(unsigned int));
+	numThreads = (unsigned int*) malloc(SIZE * sizeof(unsigned int));
+	cubi_init_d(f1);
+	cubi_init_d(f2);
+	cubi_init_d(root);
+	cubi_init_d(N);
+	cubi_init_d(numThreads);
+
 	for (int i = 0; i < SIZE; i++) {
-		f1.data[i] = d_f1[i];
-		f2.data[i] = d_f2[i];
-		root.data[i] = d_root[i];
-		N.data[i] = d_N[i];
-		numThreads.data[i] = d_numThreads[i];
+		f1[i] = d_f1[i];
+		f2[i] = d_f2[i];
+		root[i] = d_root[i];
+		N[i] = d_N[i];
+		numThreads[i] = d_numThreads[i];
 	}
 
-	cubi id, prime, prime_copy, max, zero, mod;
-	cubi_init_d(&id, SIZE);
-	cubi_init_d(&prime, SIZE);
-	cubi_init_d(&prime_copy, SIZE);
-	cubi_init_d(&max, SIZE);
-	cubi_init_d(&mod, SIZE);
-	cubi_init_d(&zero, SIZE);
-	id.data[0] = blockDim.x * blockIdx.x + threadIdx.x + 1;
+	cubi id, prime, prime_copy, max, zero, R, Q;
+	id         = (unsigned int*) malloc(SIZE * sizeof(unsigned int));
+	prime      = (unsigned int*) malloc(SIZE * sizeof(unsigned int));
+	prime_copy = (unsigned int*) malloc(SIZE * sizeof(unsigned int));
+	max        = (unsigned int*) malloc(SIZE * sizeof(unsigned int));
+	zero       = (unsigned int*) malloc(SIZE * sizeof(unsigned int));
+	R          = (unsigned int*) malloc(SIZE * sizeof(unsigned int));
+	Q          = (unsigned int*) malloc(SIZE * sizeof(unsigned int));
+	cubi_init_d(id);
+	cubi_init_d(prime);
+	cubi_init_d(prime_copy);
+	cubi_init_d(max);
+	cubi_init_d(zero);
+	cubi_init_d(R);
+	cubi_init_d(Q);
+	id[0] = blockDim.x * blockIdx.x + threadIdx.x + 1;
 
 	// Figure out starting prime
-	cubi_div(&root, &numThreads, &prime);
-	prime.data[0]++;
-	cubi_mult(&prime, &id, &max);
-	id.data[0]--;
-	cubi_copy(&prime, &prime_copy);
-	cubi_mult(&prime_copy, &id, &prime);
-	nextprime(&prime);
-	nextprime(&max);
+	cubi_div_d(root, numThreads, prime, R);
+	prime[0]++;
+	cubi_mult_d(prime, id, max);
+	id[0]--;
+	cubi_copy_d(prime, prime_copy);
+	cubi_mult_d(prime_copy, id, prime);
+	nextprime(prime);
+	nextprime(max);
 
 	// Loop through potential factors
-	while (cubi_cmp(&prime, &max) <= 0 && done == 0) {
+	while (cubi_cmp_d(prime, max) <= 0 && done == 0) {
 		// If prime divides N, add prime and q to factors, then break
-		cubi_mod(&N, &prime, &mod);
-		if (cubi_cmp(&mod, &zero) == 0) {
-			cubi_copy(&prime, &f1);
-			cubi_div(&N, &prime, &f2);
+		cubi_div_d(N, prime, Q, R);
+		if (cubi_cmp_d(R, zero) == 0) {
+			cubi_copy_d(prime, f1);
+			cubi_copy_d(Q, f2);
 			done = 1;
 			for (int i = 0; i < SIZE; i++) {
-				d_f1[i] = f1.data[i];
-				d_f2[i] = f2.data[i];
+				d_f1[i] = f1[i];
+				d_f2[i] = f2[i];
 			}
 			break;
 		} else {
 			// Otherwise figure out next prime and continue
-			nextprime(&prime);
+			nextprime(prime);
 		}
 	}
 
-	cubi_free_d(&id);
-	cubi_free_d(&prime);
-	cubi_free_d(&prime_copy);
-	cubi_free_d(&max);
-	cubi_free_d(&zero);
-	cubi_free_d(&mod);
-	cubi_free_d(&f1);
-	cubi_free_d(&f2);
-	cubi_free_d(&N);
-	cubi_free_d(&root);
-	cubi_free_d(&numThreads);
+	free(id);
+	free(prime);
+	free(prime_copy);
+	free(max);
+	free(Q);
+	free(R);
+	free(zero);
+	free(f1);
+	free(f2);
+	free(N);
+	free(root);
+	free(numThreads);
 }
 
 void checkErr(cudaError_t err, const char* msg) 
@@ -146,6 +167,8 @@ int main(int argc, char** argv)
     // Error code to check return values for CUDA calls
     cudaError_t err = cudaSuccess;
 
+	size_t size = SIZE * sizeof(unsigned int);
+
 
 	// Calculate root(N), since I don't have a cubi function for that yet
 	unsigned long long LN1 = atoi(argv[1]);
@@ -156,35 +179,35 @@ int main(int argc, char** argv)
 
 	// Allocate the host input values
 	cubi root, N, N1, N2;
-	cubi_init_h(&root, SIZE);
-	cubi_init_h(&N, SIZE);
-	cubi_init_h(&N1, SIZE);
-	cubi_init_h(&N2, SIZE);
-	size_t size = sizeof(int) * SIZE;
-	cubi_set_str_h(&N1, argv[1]);
-	cubi_set_str_h(&N2, argv[2]);
-	cubi_mult_h(&N1, &N2, &N);
-	cubi_set_str_h(&root, rootStr);
+	root = (unsigned int*) malloc(size);
+	N    = (unsigned int*) malloc(size);
+	N1   = (unsigned int*) malloc(size);
+	N2   = (unsigned int*) malloc(size);
+	cubi_init_h(root);
+	cubi_init_h(N);
+	cubi_init_h(N1);
+	cubi_init_h(N2);
 
-	//cubi h_f1;
-	//cubi_init_h(&h_f1, SIZE);
-	//cubi h_f2;
-	//cubi_init_h(&h_f2, SIZE);
-	int* h_f1 = (int*) malloc(size);
-	int* h_f2 = (int*) malloc(size);
-	int* h_N = (int*) malloc(size);
-	int* h_root = (int*) malloc(size);
-	int* h_numThreads = (int*) malloc(size);
+	cubi_set_str_bin_h(N1, argv[1]);
+	cubi_set_str_bin_h(N2, argv[2]);
+	cubi_mult_h(N1, N2, N);
+	cubi_set_str_bin_h(root, rootStr);
+
+	cubi h_f1         = (unsigned int*) malloc(size);
+	cubi h_f2         = (unsigned int*) malloc(size);
+	cubi h_N          = (unsigned int*) malloc(size);
+	cubi h_root       = (unsigned int*) malloc(size);
+	cubi h_numThreads = (unsigned int*) malloc(size);
     int threadsPerBlock = 256;
     int blocksPerGrid = 7;
-    cubi numThreads;
-	cubi_init_h(&numThreads, SIZE);
-	numThreads.data[0] = threadsPerBlock * blocksPerGrid;
+    int numThreads;
+	numThreads = threadsPerBlock * blocksPerGrid;
+	numThreads = threadsPerBlock * blocksPerGrid;
 	for (int i = 0; i < SIZE; i++) {
-		h_N[i] = N.data[i];
-		h_root[i] = root.data[i];
-		h_numThreads[i] = numThreads.data[i];
+		h_N[i] = N[i];
+		h_root[i] = root[i];
 	}
+	h_numThreads[0] = numThreads;
 
 /*    // Verify that allocations succeeded
     if (h_f1 == NULL || h_f1 == NULL || root == NULL || N == NULL)
@@ -204,19 +227,19 @@ int main(int argc, char** argv)
 	//cubi_init_cuda(&d_f1, SIZE);
 	//cubi d_f2;
 	//cubi_init_cuda(&d_f2, SIZE);
-	int* d_f1 = NULL;
+	cubi d_f1 = NULL;
     err = cudaMalloc((void **)&d_f1, size);
     checkErr(err, "Failed to allocate device value d_f1");
-	int* d_f2 = NULL;
+	cubi d_f2 = NULL;
     err = cudaMalloc((void **)&d_f2, size);
     checkErr(err, "Failed to allocate device value d_f2");
-	int* d_root = NULL;
+	cubi d_root = NULL;
     err = cudaMalloc((void **)&d_root, size);
     checkErr(err, "Failed to allocate device value d_root");
-	int* d_N = NULL;
+	cubi d_N = NULL;
     err = cudaMalloc((void **)&d_N, size);
     checkErr(err, "Failed to allocate device value d_N");
-	int* d_numThreads = NULL;
+	cubi d_numThreads = NULL;
     err = cudaMalloc((void **)&d_numThreads, size);
     checkErr(err, "Failed to allocate device value d_numThreads");
 
@@ -266,14 +289,16 @@ int main(int argc, char** argv)
     //printf("CUDA test PASSED\n");
 
 	cubi f1, f2;
-	cubi_init_h(&f1, SIZE);
-	cubi_init_h(&f2, SIZE);
+	f1 = (unsigned int*) malloc(size);
+	f2 = (unsigned int*) malloc(size);
+	cubi_init_h(f1);
+	cubi_init_h(f2);
 	for (int i = 0; i < SIZE; i++) {
-		f1.data[i] = h_f1[i];
-		f2.data[i] = h_f2[i];
+		f1[i] = h_f1[i];
+		f2[i] = h_f2[i];
 	}
 	printf("base 10?\t%f\t(%s x %s)\n", /*ceil(log10(N)),*/ wtime,
-		cubi_get_str_h(&f1), cubi_get_str_h(&f2));
+		cubi_get_str_bin_h(f1), cubi_get_str_bin_h(f2));
 
     // Free device global memory
     err = cudaFree(d_f1);

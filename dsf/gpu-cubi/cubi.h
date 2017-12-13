@@ -9,216 +9,165 @@
 #include <stdio.h>
 #include <string.h>
 
-struct cubi_z {
-	int *data; // The number (left is least significant)
-	int size;  // Number of elements in data[]
-};
+#define SIZE 12
+#define INT_MAX 4294967295
+#define LEFT_ONE (1 << ((sizeof(unsigned int) * 8) - 1))
 
-typedef struct cubi_z cubi;
+typedef unsigned int* cubi;
 
 /**
- * Constructor (for the cuda device)
+ * Constructor (host)
  *
- * @param: (cubi*) a
- * @param: (int) size
+ * @param: (cubi) a
  */
-void cubi_init_cuda(cubi* a, int size) {
-	cudaMalloc((void **)a, (size+1) * sizeof(int));
-	a->data = (int*) malloc(size * sizeof(int));
-	for (int i = 0; i < size; i++) {
-		a->data[i] = 0;
-	}
-	a->size = size;
+void cubi_init_h(cubi a) {
+	for (int i = 0; i < SIZE; i++)
+		a[i] = 0;
 }
 
 /**
  * Constructor (device)
  *
- * @param: (cubi*) a
- * @param: (int) size
+ * @param: (cubi) a
  */
 __device__
-void cubi_init_d(cubi* a, int size) {
-	a->data = (int*) malloc(size * sizeof(int));
-	for (int i = 0; i < size; i++)
-		a->data[i] = 0;
-	a->size = size;
+void cubi_init_d(cubi a) {
+	for (int i = 0; i < SIZE; i++)
+		a[i] = 0;
 }
 
 /**
- * Constructor (for the host)
+ * Destructor
  *
- * @param: (cubi*) a
- * @param: (int) size
+ * @param: (cubi) a
  */
-void cubi_init_h(cubi* a, int size) {
-	a->data = (int*) malloc(size * sizeof(int));
-	for (int i = 0; i < size; i++)
-		a->data[i] = 0;
-	a->size = size;
-}
-
-/**
- * Destructor (cuda)
- *
- * @param: (cubi*) a
- */
-void cubi_free_cuda(cubi* a) {
-	cudaFree(a->data);
-}
-
-/**
- * Destructor (host)
- *
- * @param: (cubi*) a
- */
-void cubi_free_h(cubi* a) {
-	free(a->data);
-}
-
-/**
- * Destructor (device)
- *
- * @param: (cubi*) a
- */
-__device__
-void cubi_free_d(cubi* a) {
-	free(a->data);
+void cubi_free(cubi a) {
+	free(a);
 }
 
 /**
  * Get Size of cubi
  *
- * @param: (cubi*) a
+ * @param: (cubi) a
  * return: (int) size
  */
-__device__
-int cubi_size(cubi* a) {
-	return a->size;
+int cubi_size(cubi a) {
+	return SIZE;
 }
 
 /**
  * Debug dump of cubi contents
  *
- * @param: (cubi*) a
+ * @param: (cubi) a
  */
-__device__
-void cubi_dump(cubi* a) {
-	printf("STRUCT {\n\tsize: %d\n", a->size);
-	for (int i = 0; i < cubi_size(a); i++) {
-		printf("\t[%d]: %d\n", i, a->data[i]);
+void cubi_dump(cubi a) {
+	printf("STRUCT {\n\tsize: %d\n", SIZE);
+	for (int i = 0; i < SIZE; i++) {
+		printf("\t[%d]: %u\n", i, a[i]);
 	}
 	printf("}\n");
 }
 
 /**
- * Copy constructor (ON HOST)
- * TODO: Work on different sized nums
+ * Bit shift cubi right
  *
- * @param: (cubi*) a
- * @param: (cubi*) b
+ * @param: Cubi
  */
-void cubi_copy_h(cubi* a, cubi* b) {
-	if (a->size != b->size) {
-		printf("ERROR: cubi_copy(), Cubis must be of the same size.\n");
-		return;
-	}
-	for (int i = 0; i < a->size; i++) {
-		b->data[i] = a->data[i];
+void cubi_shift_right(cubi a) {
+	int bits1, bits2;
+	bits1 = bits2 = 0;
+	for (int i = SIZE - 1; i >= 0; i--) {
+		bits1 = a[i] & 1;
+		a[i] >>= 1;
+		//a[i] |= (bits2 * ( 1 << ((sizeof(int) - 1)) * 8));
+		if (bits2 == 1) a[i] += 500000;
+		bits2 = bits1;
 	}
 }
 
 /**
- * Copy constructor
- * TODO: Work on different sized nums
+ * Bit shift cubi left (HOST)
  *
- * @param: (cubi*) a
- * @param: (cubi*) b
+ * @param: Cubi
  */
-__device__
-void cubi_copy(cubi* a, cubi* b) {
-	if (a->size != b->size) {
-		printf("ERROR: cubi_copy(), Cubis must be of the same size.\n");
-		return;
-	}
-	for (int i = 0; i < a->size; i++) {
-		b->data[i] = a->data[i];
-	}
-}
-
-/**
- * Calculates the power of an int (that can be used on the CUDA device) (ON HOST)
- * 
- * @param: (int) base
- * @param: (int) power
- * return: (int) base ^ power
- */
-int power_h(int base, int power) {
-	int result = 1;
-	for (int i = 0; i < power; i++) {
-		result *= base;
-	}
-	return result;
-}
-
-/**
- * Calculates the power of an int (that can be used on the CUDA device)
- * 
- * @param: (int) base
- * @param: (int) power
- * return: (int) base ^ power
- */
-__device__
-int power(int base, int power) {
-	int result = 1;
-	for (int i = 0; i < power; i++) {
-		result *= base;
-	}
-	return result;
-}
-
-/**
- * Set cubi value by string (for device)
- *
- * @param: (cubi*) a
- * @param: (char*) str
- * @param: (int) length, the string length
- */
-__device__
-void cubi_set_str(cubi* a, char* str, int length) {
-	if (length > cubi_size(a) * 6)
-		printf("\nERROR: cubi_set_str(), string too long to store in cubi type.\n");
-	else {
-		// Empty out cubi
-		for (int i = 0; i < cubi_size(a); i++)
-			a->data[i] = 0;
-
-		// Starting at the right end of string, add to data[] from left end of array
-		for (int i = 0; i < length; i++) {
-			a->data[i/6] += (str[length-i-1] - '0') * (int) power(10, i % 6);
+void cubi_shift_left_h(cubi a) {
+	unsigned int bits1, bits2;
+	bits1 = bits2 = 0;
+	for (int i = 0; i < SIZE; i++) {
+		bits1 = a[i] & (1 << ((sizeof(unsigned int)) * 8 - 1));
+		a[i] <<= 1;
+		if (bits2) {
+			a[i] += 1;
 		}
+		bits2 = bits1;
 	}
 }
 
 /**
- * Set cubi value by string (for host)
+ * Bit shift cubi left (DEVICE)
  *
- * @param: (cubi*) a
- * @param: (char*) str
+ * @param: Cubi
  */
-void cubi_set_str_h(cubi* a, char* str) {
+__device__
+void cubi_shift_left_d(cubi a) {
+	unsigned int bits1, bits2;
+	bits1 = bits2 = 0;
+	for (int i = 0; i < SIZE; i++) {
+		bits1 = a[i] & (1 << ((sizeof(unsigned int)) * 8 - 1));
+		a[i] <<= 1;
+		if (bits2) {
+			a[i] += 1;
+		}
+		bits2 = bits1;
+	}
+}
+
+/**
+ * Copy constructor (HOST)
+ * TODO: Work on different sized nums
+ *
+ * @param: (cubi) a
+ * @param: (cubi) b
+ */
+void cubi_copy_h(cubi a, cubi b) {
+	for (int i = 0; i < SIZE; i++) {
+		b[i] = a[i];
+	}
+}
+
+/**
+ * Copy constructor (DEVICE)
+ * TODO: Work on different sized nums
+ *
+ * @param: (cubi) a
+ * @param: (cubi) b
+ */
+__device__
+void cubi_copy_d(cubi a, cubi b) {
+	for (int i = 0; i < SIZE; i++) {
+		b[i] = a[i];
+	}
+}
+
+/**
+ * Set cubi value by string binary (HOST)
+ *
+ * @param: (cubi) a
+ * @param: (cubi) str
+ */
+void cubi_set_str_bin_h(cubi a, char* str) {
 	int length = strlen(str);
-	if (length > a->size * 6)
-		printf("\nERROR: cubi_set_str(), string too long to store in cubi type.\n");
-	else {
-		// Empty out cubi
-		for (int i = 0; i < a->size; i++)
-			a->data[i] = 0;
+	if (length > SIZE * 32) {
+		printf("\nERROR: cubi_set_str_bin(), string too long to store in cubi type.\n");
+		exit(1);
+	}
 
-		// Starting at the right end of string, add to data[] from left end of array
-		for (int i = 0; i < length; i++) {
-			a->data[i/6] += (str[length-i-1] - '0') * (int) power_h(10, i % 6);
-		}
+	// Empty out cubi
+	for (int i = 0; i < SIZE; i++)
+		a[i] = 0;
+
+	for (int i = 0; i < length; i++) {
+		a[i/32] += (str[length-i-1] - '0') * (unsigned int) pow(2, i % 32);
 	}
 }
 
@@ -227,27 +176,26 @@ void cubi_set_str_h(cubi* a, char* str) {
  * TODO: Fix - Prints incorrectly when there are leading zeros in the data[] int
  *       (since they don't show up in the sprintf)
  *
- * @param: (cubi*) a
+ * @param: (cubi) a
  * return: (char*) retStr
  */
-char* cubi_get_str_h(cubi* a) {
+char* cubi_get_str_bin_h(cubi a) {
 	int i;
-	int size = a->size;
-	char* str = (char*) malloc(size * 6 * sizeof(char));
-	char* tempStr = (char*) malloc(6 * sizeof(char));
+	char* str = (char*) malloc(SIZE * 32 * sizeof(char));
+	char* tempStr = (char*) malloc(32 * sizeof(char));
 
 	// For each data element, add the number to str (through a tempStr)
 	int leadZero = 1;
-	for (i = size - 1; i >= 0; i--) {
-		if (a->data[i] == 0 && leadZero == 1) // Skip leading zeros
+	for (i = SIZE - 1; i >= 0; i--) {
+		if (a[i] == 0 && leadZero == 1) // Skip leading zeros
 			continue;
 		leadZero = 0;
-		sprintf(tempStr, "%d", a->data[i]);
+		sprintf(tempStr, "%d", a[i]);
 		strcat(str, tempStr);
 	}
 
 	// Copy space for retStr
-	char* retStr = (char*) malloc(size * 6);
+	char* retStr = (char*) malloc(strlen(str));
 	strcpy(retStr, str);
 
 	// Remove leading un-wanted values
@@ -259,195 +207,184 @@ char* cubi_get_str_h(cubi* a) {
 	free(tempStr);
 	return retStr;
 }
-
-/**
- * Get order of magnitude of cubi (with respect to 10^6);
- *
- * @param: (cubi*) a
- * return: (int) order of magnitude
- */
-__device__
-int cubi_magnitude(cubi* a) {
-	int i;
-	for (i = a->size - 1; i >= 0; i--) {
-		if (a->data[i] != 0)
-			break;
-	}
-	if (i < 0) i = 0;
-	return i;
-}
  
 /**
- * Compare cubi numbers. (a == b) -> 0; (a < b) -> -1; (a > b) -> 1;
+ * Compare cubi numbers. (a == b) -> 0; (a < b) -> -1; (a > b) -> 1; (HOST)
  *
- * @param: (cubi*) a
- * @param: (cubi*) b
+ * @param: (cubi) a
+ * @param: (cubi) b
  * return: (int) {-1,0,1}
  */
-__device__
-int cubi_cmp(cubi* a, cubi* b) {
-	int sa = cubi_size(a);
-	int sb = cubi_size(b);
-	int smin = (sa < sb) ? sa : sb; // MIN(sa, sb);
-	int smax = (sa < sb) ? sb : sa; // MAX(sa, sb);
-	for (int i = smax - 1; i >= 0; i--) {
-		if (i < smin - 1) {
-			if (a->data[i] > b->data[i])
-				return 1;
-			else if (a->data[i] < b->data[i])
-				return -1;
-			else
-				continue;
-		}
-		if (i > sa - 1) {
-			if (b->data[i] > 0) return -1;
-		} else if (i > sb - 1) {
-			if (a->data[i] > 0) return 1;
-		}
+int cubi_cmp_h(cubi a, cubi b) {
+	for (int i = SIZE - 1; i >= 0; i--) {
+		if (a[i] > b[i])
+			return 1;
+		else if (a[i] < b[i])
+			return -1;
+		else
+			continue;
 	}
 	return 0;
 }
 
 /**
- * Add two cubi numbers, saving the result in the third (a + b = c) (ON HOST)
+ * Compare cubi numbers. (a == b) -> 0; (a < b) -> -1; (a > b) -> 1; (DEVICE)
  *
- * @param: (cubi*) a
- * @param: (cubi*) b
- * @param: (cubi*) c
+ * @param: (cubi) a
+ * @param: (cubi) b
+ * return: (int) {-1,0,1}
  */
-void cubi_add_h(cubi* a, cubi* b, cubi* c) {
-	int sa = a->size;
-	int sb = b->size;
-	int size = (sa < sb) ? sa : sb; // MIN(sa, sb);
-
-	// Make sure c is big enough
-	if (c->size < size) {
-		printf("ERROR: cubi_add(), result cubi is too small to store sum\n");
-		return;
+__device__
+int cubi_cmp_d(cubi a, cubi b) {
+	for (int i = SIZE - 1; i >= 0; i--) {
+		if (a[i] > b[i])
+			return 1;
+		else if (a[i] < b[i])
+			return -1;
+		else
+			continue;
 	}
+	return 0;
+}
 
+/**
+ * Add two cubi numbers, saving the result in the third (a + b = c) (HOST)
+ *
+ * @param: (cubi) a
+ * @param: (cubi) b
+ * @param: (cubi) c
+ */
+void cubi_add_h(cubi a, cubi b, cubi c) {
 	// Clean out c
-	for (int i = 0; i < c->size; i++)
-		c->data[i] = 0;
+	for (int i = 0; i < SIZE; i++)
+		c[i] = 0;
 
-	int carry = 0;
-	for (int i = 0; i < size; i++) {
-		c->data[i] = a->data[i] + b->data[i] + carry;
-		carry = c->data[i] / 1000000;
-		c->data[i] -= carry * 1000000;
+	unsigned int carry = 0;
+	for (int i = 0; i < SIZE; i++) {
+		c[i] = a[i] + b[i] + carry;
+		carry = 0;
+		if (c[i] < a[i] || c[i] < b[i]) {
+			carry = 1;
+			c[i] -= INT_MAX + 1;
+		}
 	}
 
 	// Carry should be empty. If not, we ran out of room
 	if (carry > 0) {
 		printf("ERROR: cubi_add(), ran out of room in result variable\n");
-		return;
+		exit(1);
 	}
 }
 
 /**
- * Add two cubi numbers, saving the result in the third (a + b = c)
+ * Add two cubi numbers, saving the result in the third (a + b = c) (DEVICE)
  *
- * @param: (cubi*) a
- * @param: (cubi*) b
- * @param: (cubi*) c
+ * @param: (cubi) a
+ * @param: (cubi) b
+ * @param: (cubi) c
  */
 __device__
-void cubi_add(cubi* a, cubi* b, cubi* c) {
-	int sa = cubi_size(a);
-	int sb = cubi_size(b);
-	int size = (sa < sb) ? sa : sb; // MIN(sa, sb);
-
-	// Make sure c is big enough
-	if (cubi_size(c) < size) {
-		printf("ERROR: cubi_add(), result cubi is too small to store sum\n");
-		return;
-	}
-
+void cubi_add_d(cubi a, cubi b, cubi c) {
 	// Clean out c
-	for (int i = 0; i < cubi_size(c); i++)
-		c->data[i] = 0;
+	for (int i = 0; i < SIZE; i++)
+		c[i] = 0;
 
-	int carry = 0;
-	for (int i = 0; i < size; i++) {
-		c->data[i] = a->data[i] + b->data[i] + carry;
-		carry = c->data[i] / 1000000;
-		c->data[i] -= carry * 1000000;
+	unsigned int carry = 0;
+	for (int i = 0; i < SIZE; i++) {
+		c[i] = a[i] + b[i] + carry;
+		carry = 0;
+		if (c[i] < a[i] || c[i] < b[i]) {
+			carry = 1;
+			c[i] -= INT_MAX + 1;
+		}
 	}
 
 	// Carry should be empty. If not, we ran out of room
 	if (carry > 0) {
 		printf("ERROR: cubi_add(), ran out of room in result variable\n");
-		return;
 	}
 }
 
 /**
- * Subtract two cubi numbers, saving the result in the third (a - b = c)
+ * Subtract two cubi numbers, saving the result in the third (a - b = c) (HOST)
  *
- * @param: (cubi*) a
- * @param: (cubi*) b
- * @param: (cubi*) c
+ * @param: (cubi) a
+ * @param: (cubi) b
+ * @param: (cubi) c
+ */
+void cubi_sub_h(cubi a, cubi b, cubi c) {
+	if (cubi_cmp_h(a, b) < 0) {
+		printf("ERROR: cubi_sub(a, b, c), a must be greater than b\n");
+		exit(1);
+	}
+
+	// Clean out c
+	for (int i = 0; i < SIZE; i++)
+		c[i] = 0;
+
+	for (int i = 0; i < SIZE; i++) {
+		if (b[i] > a[i]) {
+			c[i+1] -= 1;
+		}
+		c[i] += a[i] - b[i];
+	}
+}
+
+/**
+ * Subtract two cubi numbers, saving the result in the third (a - b = c) (DEVICE)
+ *
+ * @param: (cubi) a
+ * @param: (cubi) b
+ * @param: (cubi) c
  */
 __device__
-void cubi_sub(cubi* a, cubi* b, cubi* c) {
-	int sa = cubi_size(a);
-	int sb = cubi_size(b);
-	int sc = cubi_size(c);
-	if (sa != sb || sa != sc) {
-		printf("ERROR: cubi_sub(a, b, c) requires that size of a,b,c are equal\n");
-		return;
-	}
-	if (cubi_cmp(a, b) < 0) {
+void cubi_sub_d(cubi a, cubi b, cubi c) {
+	if (cubi_cmp_d(a, b) < 0) {
 		printf("ERROR: cubi_sub(a, b, c), a must be greater than b\n");
 		return;
 	}
 
 	// Clean out c
-	for (int i = 0; i < cubi_size(c); i++)
-		c->data[i] = 0;
+	for (int i = 0; i < SIZE; i++)
+		c[i] = 0;
 
-	int carry = 0;
-	for (int i = 0; i < sa; i++) {
-		if (b->data[i] > a->data[i]) {
-			carry = 1000000;
-			c->data[i+1] -= 1;
+	for (int i = 0; i < SIZE; i++) {
+		if (b[i] > a[i]) {
+			c[i+1] -= 1;
 		}
-		c->data[i] += a->data[i] - b->data[i] + carry;
-		carry = 0;
+		c[i] += a[i] - b[i];
 	}
 }
 
 /**
- * Multiply two cubi numbers, saving the result in the third (a * b = c) (ON HOST)
+ * Multiply two cubi numbers, saving the result in the third (a * b = c) (HOST)
  * TODO: Speedup with dynamic programming (different mult algorithm)
  *
- * @param: (cubi*) a
- * @param: (cubi*) b
- * @param: (cubi*) c
+ * @param: (cubi) a
+ * @param: (cubi) b
+ * @param: (cubi) c
  */
-void cubi_mult_h(cubi* a, cubi* b, cubi* c) {
-	int sa = a->size;
-	int sb = b->size;
-	int sc = c->size;
-
+void cubi_mult_h(cubi a, cubi b, cubi c) {
 	cubi d, ccpy;
-	cubi_init_h(&d, sa + sb);
-	cubi_init_h(&ccpy, sc);
+	d = (unsigned int*) malloc(SIZE * sizeof(unsigned int));
+	ccpy = (unsigned int*) malloc(SIZE * sizeof(unsigned int));
+	cubi_init_h(d);
+	cubi_init_h(ccpy);
 
 	// Clean out c
-	for (int i = 0; i < sc; i++)
-		c->data[i] = 0;
+	for (int i = 0; i < SIZE; i++)
+		c[i] = 0;
 
-	int carry = 0;
-	for (int i = 0; i < sa; i++) {
-		for (int j = 0; j < sb; j++) {
-			if (j+i < sc) {
-				unsigned long ul = (unsigned long) a->data[i] * (unsigned long) b->data[j] + (unsigned long) carry;
-				carry = (int) (ul / 1000000);
-				d.data[i+j] = (int) (ul - carry * 1000000);
-				cubi_copy_h(c, &ccpy);
-				cubi_add_h(&ccpy, &d, c);
-				d.data[i+j] = 0;
+	unsigned long carry = 0;
+	for (int i = 0; i < SIZE; i++) {
+		for (int j = 0; j < SIZE; j++) {
+			if (j+i < SIZE) {
+				unsigned long ul = (unsigned long) a[i] * (unsigned long) b[j] + (unsigned long) carry;
+				carry = (unsigned int) (ul / (INT_MAX+1));
+				d[i+j] = (unsigned int) (ul - carry * (INT_MAX+1));
+				cubi_copy_h(c, ccpy);
+				cubi_add_h(ccpy, d, c);
+				d[i+j] = 0;
 			}
 		}
 	}
@@ -455,42 +392,40 @@ void cubi_mult_h(cubi* a, cubi* b, cubi* c) {
 	// Carry should be empty. If not, we ran out of room
 	if (carry > 0)
 		printf("ERROR: cubi_add(), ran out of room in result variable");
-	cubi_free_h(&d);
-	cubi_free_h(&ccpy);
+	free(d);
+	free(ccpy);
 }
 
 /**
- * Multiply two cubi numbers, saving the result in the third (a * b = c)
+ * Multiply two cubi numbers, saving the result in the third (a * b = c) (DEVICE)
  * TODO: Speedup with dynamic programming (different mult algorithm)
  *
- * @param: (cubi*) a
- * @param: (cubi*) b
- * @param: (cubi*) c
+ * @param: (cubi) a
+ * @param: (cubi) b
+ * @param: (cubi) c
  */
 __device__
-void cubi_mult(cubi* a, cubi* b, cubi* c) {
-	int sa = cubi_size(a);
-	int sb = cubi_size(b);
-	int sc = cubi_size(c);
-
+void cubi_mult_d(cubi a, cubi b, cubi c) {
 	cubi d, ccpy;
-	cubi_init_d(&d, sa + sb);
-	cubi_init_d(&ccpy, sc);
+	d = (unsigned int*) malloc(SIZE * sizeof(unsigned int));
+	ccpy = (unsigned int*) malloc(SIZE * sizeof(unsigned int));
+	cubi_init_d(d);
+	cubi_init_d(ccpy);
 
 	// Clean out c
-	for (int i = 0; i < sc; i++)
-		c->data[i] = 0;
+	for (int i = 0; i < SIZE; i++)
+		c[i] = 0;
 
-	int carry = 0;
-	for (int i = 0; i < sa; i++) {
-		for (int j = 0; j < sb; j++) {
-			if (j+i < sc) {
-				unsigned long ul = (unsigned long) a->data[i] * (unsigned long) b->data[j] + (unsigned long) carry;
-				carry = (int) (ul / 1000000);
-				d.data[i+j] = (int) (ul - carry * 1000000);
-				cubi_copy(c, &ccpy);
-				cubi_add(&ccpy, &d, c);
-				d.data[i+j] = 0;
+	unsigned long carry = 0;
+	for (int i = 0; i < SIZE; i++) {
+		for (int j = 0; j < SIZE; j++) {
+			if (j+i < SIZE) {
+				unsigned long ul = (unsigned long) a[i] * (unsigned long) b[j] + (unsigned long) carry;
+				carry = (unsigned int) (ul / (INT_MAX+1));
+				d[i+j] = (unsigned int) (ul - carry * (INT_MAX+1));
+				cubi_copy_d(c, ccpy);
+				cubi_add_d(ccpy, d, c);
+				d[i+j] = 0;
 			}
 		}
 	}
@@ -498,112 +433,82 @@ void cubi_mult(cubi* a, cubi* b, cubi* c) {
 	// Carry should be empty. If not, we ran out of room
 	if (carry > 0)
 		printf("ERROR: cubi_add(), ran out of room in result variable");
-	cubi_free_d(&d);
-	cubi_free_d(&ccpy);
+	free(d);
+	free(ccpy);
 }
 
 /**
- * Divide cubi numbers, storing the result in the third (a / b = c)
+ * Divide cubi numbers, storing the result in the third (N / D = Q) (HOST)
+ * (DONE WITH BIT SHIFT)
  *
- * @param: (cubi*) a
- * @param: (cubi*) b
- * @param: (cubi*) c
+ * @param: (cubi) N
+ * @param: (cubi) D
+ * @param: (cubi) Q
+ * @param: (cubi) R
  */
-__device__
-void cubi_div(cubi* a, cubi* b, cubi* c) {
-	int sa = cubi_size(a);
-	int sb = cubi_size(b);
-	int sc = cubi_size(c);
+void cubi_div_h(cubi N, cubi D, cubi Q, cubi R) {
+	// Clean out Q and R
+	for (int i = 0; i < SIZE; i++) {
+		Q[i] = 0;
+		R[i] = 0;
+	}
+	cubi Rcpy;
+	Rcpy = (unsigned int*) malloc(sizeof(unsigned int) * SIZE);
 
-	if (sa != sb || sa != sc) {
-		printf("ERROR: cubi_div(a, b, c) requires that size of a,b,c are equal\n");
-		return;
+	// Check for divide by zero
+	if (cubi_cmp_h(Q, D) == 0) {
+		printf("ERROR: cubi_div(), DIVIDE BY ZERO\n");
+		exit(1);
 	}
 
-	// Clean out c
-	for (int i = 0; i < sc; i++)
-		c->data[i] = 0;
-
-	cubi zero, R, Rcpy, BxRES, RES, OVER;
-	cubi_init_d(&zero, sb);
-	if (cubi_cmp(&zero, b) == 0) {
-		printf("ERROR: cubi_div(), divide by zero.\n");
-		return;
-	}
-
-	cubi_init_d(&BxRES, sa);
-	cubi_init_d(&R, sa);
-	cubi_init_d(&Rcpy, sa);
-	cubi_init_d(&RES, sa);
-	cubi_init_d(&OVER, sa);
-	cubi_copy(a, &R);
-	int magB = cubi_magnitude(b);
-	int carry = 0; int overshot = 0;
-	while (cubi_cmp(&R, b) >= 0) {
-		int magR = cubi_magnitude(&R);
-
-		// Inital guess of c[magR - magB]
-		long int res = R.data[magR] / b->data[magB];
-		if (res == 0) {
-			res = (R.data[magR] * 1000000) / b->data[magB];
-			carry = 1;
+	for (int i = SIZE * 32 - 1; i >= 0; i--) {
+		cubi_shift_left_h(R);
+		int tempN = (N[i/32] >> (i % 32)) & 1; // extract bit i/32, and put it at bit 0
+		R[0] &= ~1;  // clear bit zero
+		R[0] |= tempN; // Setbit 0 of R[0] to N[i/32]
+		if (cubi_cmp_h(R, D) >= 0) {
+			cubi_copy_h(R, Rcpy);
+			cubi_sub_h(Rcpy, D, R);
+			Q[i/32] |= (1 << (i % 32));
 		}
-		if (res <= 0) { res *= -1; res++; }
-		c->data[magR - magB - carry] += res - overshot;
-		RES.data[magR - magB - carry] = res - overshot;
-		cubi_mult(b, &RES, &BxRES);
-		cubi_copy(&R, &Rcpy);
-		if (cubi_cmp(&R, &BxRES) < 0) { // Then we overshot. Add remove from c
-			c->data[magR - magB - carry] -= res - overshot;
-//			overshot++;
-			cubi_sub(&BxRES, &R, &OVER);
-			int magOver = cubi_magnitude(&OVER);
-			overshot += OVER.data[magOver] / b->data[magB] + 1; // add estimate for overshoot
-		} else {
-			cubi_sub(&Rcpy, &BxRES, &R);
-			overshot = 0;
-		}
-		RES.data[magR - magB - carry] = 0;
-		carry = 0;
 	}
-
-	cubi_free_d(&zero);
-	cubi_free_d(&R);
-	cubi_free_d(&Rcpy);
-	cubi_free_d(&RES);
-	cubi_free_d(&BxRES);
-	cubi_free_d(&OVER);
+	free(Rcpy);
 }
 
 /**
- * Calculate modulus of a cubi number: a (mod b) = c
+ * Divide cubi numbers, storing the result in the third (N / D = Q) (DEVICE)
+ * (DONE WITH BIT SHIFT)
  *
- * @param: (cubi*) a
- * @param: (cubi*) b
- * @param: (cubi*) c
+ * @param: (cubi) N
+ * @param: (cubi) D
+ * @param: (cubi) Q
+ * @param: (cubi) R
  */
 __device__
-void cubi_mod(cubi* a, cubi* b, cubi* c) {
-	int sa = cubi_size(a);
-	int sb = cubi_size(b);
-	int sc = cubi_size(c);
+void cubi_div_d(cubi N, cubi D, cubi Q, cubi R) {
+	// Clean out Q and R
+	for (int i = 0; i < SIZE; i++) {
+		Q[i] = 0;
+		R[i] = 0;
+	}
+	cubi Rcpy;
+	Rcpy = (unsigned int*) malloc(sizeof(unsigned int) * SIZE);
 
-	if (sa != sb || sa != sc) {
-		printf("ERROR: cubi_mod(a, b, c) requires that size of a,b,c are equal\n");
-		return;
+	// Check for divide by zero
+	if (cubi_cmp_d(Q, D) == 0) {
+		printf("ERROR: cubi_div(), DIVIDE BY ZERO\n");
 	}
 
-	// Clean out c
-	for (int i = 0; i < sc; i++)
-		c->data[i] = 0;
-
-	cubi Q, D;
-	cubi_init_d(&D, sa);
-	cubi_init_d(&Q, sa);
-	cubi_div(a, b, &Q);
-	cubi_mult(b, &Q, &D);
-	cubi_sub(a, &D, c);
-
-	cubi_free_d(&Q);
-	cubi_free_d(&D);
+	for (int i = SIZE * 32 - 1; i >= 0; i--) {
+		cubi_shift_left_d(R);
+		int tempN = (N[i/32] >> (i % 32)) & 1; // extract bit i/32, and put it at bit 0
+		R[0] &= ~1;  // clear bit zero
+		R[0] |= tempN; // Setbit 0 of R[0] to N[i/32]
+		if (cubi_cmp_d(R, D) >= 0) {
+			cubi_copy_d(R, Rcpy);
+			cubi_sub_d(Rcpy, D, R);
+			Q[i/32] |= (1 << (i % 32));
+		}
+	}
+	free(Rcpy);
 }

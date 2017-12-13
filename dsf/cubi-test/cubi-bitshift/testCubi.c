@@ -34,7 +34,7 @@ int main(int argc, char** argv) {
 	testAdd();
 	testSub();
 	testMult();
-//	testDiv();
+	testDiv();
 //	testMod();
 
 	fprintf(stderr, "All tests passed!\n\n");
@@ -103,69 +103,30 @@ void testDiv() {
 	cubi_init(d);
 	cubi_init(r);
 
-	fprintf(stderr, "  + Evenly divide small numbers... ");
-	cubi_set_str_bin(a, (char*) "738");
-	cubi_set_str_bin(b, (char*) "41");
-	cubi_set_str_bin(d, (char*) "18");
+	fprintf(stderr, "  + Small numbers evenly... ");
+	cubi_set_str_bin(d, (char*) "10011");
+	cubi_set_str_bin(b, (char*) "111");
+	cubi_set_str_bin(a, (char*) "10000101");
 	cubi_div(a, b, c, r);
 	assert(cubi_cmp(c, d) == 0);
 	fprintf(stderr, "✔\n");
 
-	fprintf(stderr, "  + Evenly divide medium length numbers... ");
-	cubi_set_str_bin(d, (char*) "501210");
-	cubi_set_str_bin(b, (char*) "72342320");
-	cubi_set_str_bin(a, (char*) "36258694207200");
+	fprintf(stderr, "  + Medium length numbers evenly... ");
+	cubi_set_str_bin(d, (char*) "1111010010111011010");
+	cubi_set_str_bin(b, (char*) "100010011111101101100110000");
+	cubi_set_str_bin(a, (char*) "1000001111101000100010100101101001011011100000");
 	cubi_div(a, b, c, r);
 	assert(cubi_cmp(c, d) == 0);
 	fprintf(stderr, "✔\n");
 
-	fprintf(stderr, "  + Evenly divide large numbers... ");
-	cubi_set_str_bin(b, (char*) "6780923458996723459");
-	cubi_set_str_bin(d, (char*) "23452345694533453452");
-	cubi_set_str_bin(a, (char*) "159028561088562700000737018131892930468");
+	fprintf(stderr, "  + Large numbers evenly... ");
+	cubi_set_str_bin(b, (char*) "101111000011010101011011111010110000110100111001101111100000011");
+	cubi_set_str_bin(d, (char*) "10100010101110111011110000010011101000000010101000000011010001100");
+	cubi_set_str_bin(a, (char*) "1110111101000111100100101101010100000000100011111100000001100100001000010110110101010000001110000111000000000000000011110100100");
 	cubi_div(a, b, c, r);
 	assert(cubi_cmp(c, d) == 0);
 	fprintf(stderr, "✔\n");
 
-	fprintf(stderr, "  + Evenly divide large numbers reversed... ");
-	cubi_set_str_bin(d, (char*) "6780923458996723459");
-	cubi_set_str_bin(b, (char*) "23452345694533453452");
-	cubi_set_str_bin(a, (char*) "159028561088562700000737018131892930468");
-	cubi_div(a, b, c, r);
-	assert(cubi_cmp(c, d) == 0);
-	fprintf(stderr, "✔\n");
-
-	fprintf(stderr, "  + Divide small numbers with remainder... ");
-	cubi_set_str_bin(a, (char*) "738");
-	cubi_set_str_bin(b, (char*) "47");
-	cubi_set_str_bin(d, (char*) "15");
-	cubi_div(a, b, c, r);
-	assert(cubi_cmp(c, d) == 0);
-	fprintf(stderr, "✔\n");
-
-	fprintf(stderr, "  + Divide large numbers with remainder... ");
-	cubi_set_str_bin(b, (char*) "7234593223");
-	cubi_set_str_bin(d, (char*) "21981686625169734163053305109");
-	cubi_set_str_bin(a, (char*) "159028561088562700000737018131892930468");
-	cubi_div(a, b, c, r);
-	assert(cubi_cmp(c, d) == 0);
-	fprintf(stderr, "✔\n");
-
-	fprintf(stderr, "  + Divide large numbers with remainder... ");
-	cubi_set_str_bin(b, (char*) "12723423");
-	cubi_set_str_bin(d, (char*) "7096015819456526607021");
-	cubi_set_str_bin(a, (char*) "90285610885637018131892930468");
-	cubi_div(a, b, c, r);
-	assert(cubi_cmp(c, d) == 0);
-	fprintf(stderr, "✔\n");
-
-	fprintf(stderr, "  + Divide large numbers with remainder... ");
-	cubi_set_str_bin(b, (char*) "12723423348923489792348923484");
-	cubi_set_str_bin(d, (char*) "7");
-	cubi_set_str_bin(a, (char*) "90285610885637018131892930468");
-	cubi_div(a, b, c, r);
-	assert(cubi_cmp(c, d) == 0);
-	fprintf(stderr, "✔\n");
 
 	cubi_free(a);
 	cubi_free(b);
@@ -212,8 +173,6 @@ void testMult() {
 	cubi_set_str_bin(b, (char*) "10100010101110111011110000010011101000000010101000000011010001100");
 	cubi_set_str_bin(d, (char*) "1110111101000111100100101101010100000000100011111100000001100100001000010110110101010000001110000111000000000000000011110100100");
 	cubi_mult(a, b, c);
-	cubi_dump(c);
-	cubi_dump(d);
 	assert(cubi_cmp(c, d) == 0);
 	fprintf(stderr, "✔\n");
 
@@ -265,6 +224,13 @@ void testSub() {
 	assert(cubi_cmp(c, d) == 0);
 	fprintf(stderr, "✔\n");
 
+	fprintf(stderr, "  + Big num - really big num... ");
+	cubi_set_str_bin(d, (char*) "10100101010101110110101011010101010111010101010101010101010111011110000010011101000000010101000000011010001100");
+	cubi_set_str_bin(b, (char*) "1110111101000111100100101101010100000000100011111100000001100100001000010110110101010000001110000111000000000000000011110100100");
+	cubi_set_str_bin(a, (char*) "1110111101000111111001011000000010110101111110100110111100001110110011000001110001000000100001101111000010101000000111000110000");
+	cubi_sub(a, b, c);
+	assert(cubi_cmp(c, d) == 0);
+	fprintf(stderr, "✔\n");
 
 	cubi_free(a);
 	cubi_free(b);
@@ -563,17 +529,18 @@ void testInit() {
 
 	cubi_set_str_bin(b, (char*) "1101010101011010101010101100101010110101010101010101010011010");
 	fprintf(stderr, "    a = 1921723508198124186... ");
-	cubi_dump(b);
+	fprintf(stderr, "✔\n");
+
+	fprintf(stderr, "    a = 159028561088562700000737018131892930468... ");
+	cubi_set_str_bin(a, (char*) "1110111101000111100100101101010100000000100011111100000001100100001000010110110101010000001110000111000000000000000011110100100");
 	fprintf(stderr, "✔\n");
 /*	fprintf(stderr, "  + cubi_set_str_bin(), cubi_get_str()... "); 
 	cubi_set_str_bin(a, (char*) "999999999888888887777777666666555554444333140714042285546");
 	fprintf(stderr, "\n    a = 999999999888888887777777666666555554444333140714042285546 == ");
-	cubi_dump(a);
 	fprintf(stderr, "✔\n");
 
 	cubi_set_str_bin(b, (char*) "140714042285546");
 	fprintf(stderr, "    b = 140714042285546 == %s ", cubi_get_str(b));
-	cubi_dump(b);
 	fprintf(stderr, "✔\n");*/
 
 	cubi_free(a);

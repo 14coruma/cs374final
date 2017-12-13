@@ -254,11 +254,14 @@ void cubi_add(cubi a, cubi b, cubi c) {
 	for (int i = 0; i < SIZE; i++)
 		c[i] = 0;
 
-	int carry = 0;
+	unsigned int carry = 0;
 	for (int i = 0; i < SIZE; i++) {
 		c[i] = a[i] + b[i] + carry;
-		carry = c[i] / INT_MAX;
-		c[i] -= carry * INT_MAX;
+		carry = 0;
+		if (c[i] < a[i] || c[i] < b[i]) {
+			carry = 1;
+			c[i] -= INT_MAX + 1;
+		}
 	}
 
 	// Carry should be empty. If not, we ran out of room
@@ -285,14 +288,11 @@ void cubi_sub(cubi a, cubi b, cubi c) {
 	for (int i = 0; i < SIZE; i++)
 		c[i] = 0;
 
-	int carry = 0;
 	for (int i = 0; i < SIZE; i++) {
 		if (b[i] > a[i]) {
-			carry = LEFT_ONE;
 			c[i+1] -= 1;
 		}
-		c[i] += a[i] - b[i] + carry;
-		carry = 0;
+		c[i] += a[i] - b[i];
 	}
 }
 
@@ -432,13 +432,15 @@ void cubi_div(cubi N, cubi D, cubi Q, cubi R) {
 		exit(1);
 	}
 
-	for (int i = SIZE - 1; i >= 0; i--) {
+	for (int i = SIZE * 32 - 1; i >= 0; i--) {
 		cubi_shift_left(R);
-		R[0] |= N[0] & 1;
+		int tempN = (N[i/32] >> (i % 32)) & 1; // extract bit i/32, and put it at bit 0
+		R[0] &= ~1;  // clear bit zero
+		R[0] |= tempN; // Setbit 0 of R[0] to N[i/32]
 		if (cubi_cmp(R, D) >= 0) {
 			cubi_copy(R, Rcpy);
 			cubi_sub(Rcpy, D, R);
-			Q[i] = 1;
+			Q[i/32] |= (1 << (i % 32));
 		}
 	}
 }

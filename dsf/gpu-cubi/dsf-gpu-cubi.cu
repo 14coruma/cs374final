@@ -83,13 +83,10 @@ void vectorHypot(
 	id.data[0] = blockDim.x * blockIdx.x + threadIdx.x + 1;
 
 	// Figure out starting prime
-//	prime = ceil(__ddiv_ru(root, numThreads));
 	cubi_div(&root, &numThreads, &prime);
 	prime.data[0]++;
-//	max = prime * (id + 1);
 	cubi_mult(&prime, &id, &max);
 	id.data[0]--;
-//	prime *= id;
 	cubi_copy(&prime, &prime_copy);
 	cubi_mult(&prime_copy, &id, &prime);
 	nextprime(&prime);
@@ -100,9 +97,7 @@ void vectorHypot(
 		// If prime divides N, add prime and q to factors, then break
 		cubi_mod(&N, &prime, &mod);
 		if (cubi_cmp(&mod, &zero) == 0) {
-			//f1[0] = prime;
 			cubi_copy(&prime, &f1);
-			//f2[0] = __ddiv_rd(N, prime);
 			cubi_div(&N, &prime, &f2);
 			done = 1;
 			for (int i = 0; i < SIZE; i++) {

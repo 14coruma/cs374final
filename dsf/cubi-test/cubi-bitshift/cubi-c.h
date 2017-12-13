@@ -352,7 +352,7 @@ void cubi_div(cubi* a, cubi* b, cubi* c) {
 //			overshot++;
 			cubi_sub(&BxRES, &R, &OVER);
 			int magOver = cubi_magnitude(&OVER);
-			overshot += OVER.data[magOver] / b->data[magB] + 1; // add estimate for overshoot
+			overshot += OVER.data[magOver] / b->data[magB] + 2; // add estimate for overshoot
 		} else {
 			cubi_sub(&Rcpy, &BxRES, &R);
 			overshot = 0;
